@@ -9,6 +9,7 @@ from ogle.constants import (
     DEFAULT_DATA_POINTS,
     DEFAULT_RELATIVE_ERROR,
 )
+from ogle.fit_data import fit_parabolic_data
 from ogle.random_data import generate_parabolic_data
 
 
@@ -39,6 +40,32 @@ def generate_parabolic_data_cli(output_path, data_points, x_rel_err, y_rel_err, 
         plt.show()
     pd.DataFrame({"x": x, "y": y}).to_csv(output_path, index=False)
     click.echo(f"Data was saved to {output_path}")
+
+
+@ogle_cli.command("fit-data")
+@click.option(
+    "-d",
+    "--data-path",
+    type=click.Path(dir_okay=False, path_type=Path, exists=True),
+)
+@click.option("--random", "is_random", is_flag=True, default=False)
+def fit_data_cli(data_path, is_random):
+    if data_path is not None or not is_random:
+        if not is_random:
+            data_path = DEFAULT_DATA_PATH
+        df = pd.read_csv(data_path)
+        real_a = None
+        x, y = df["x"].to_numpy(), df["y"].to_numpy()
+    else:
+        real_a, x, y = generate_parabolic_data()
+    fit_result = fit_parabolic_data(x=x, y=y)
+    plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2f}$)")
+    plt.scatter(x, y, label="Data points")
+    plt.plot(x, np.polyval(fit_result.a, x), label="Evaluated parabola")
+    if real_a is not None:
+        plt.plot(x, np.polyval(real_a, x), label="Real parabola")
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
