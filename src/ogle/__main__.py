@@ -3,15 +3,17 @@ from pathlib import Path
 import click
 import numpy as np
 import pandas as pd
+import tqdm
 from matplotlib import pyplot as plt
 from ogle.constants import (
     DEFAULT_DATA_PATH,
     DEFAULT_DATA_POINTS,
+    DEFAULT_EXPERIMENTS,
     DEFAULT_RELATIVE_ERROR,
 )
 from ogle.fit_data import fit_parabolic_data
 from ogle.io_util import read_data
-from ogle.random_data import generate_parabolic_data
+from ogle.random_data import generate_parabolic_data, sample_records
 
 
 @click.group()
@@ -60,6 +62,44 @@ def fit_data_cli(data_path, is_random):
         plt.plot(x, np.polyval(real_a, x), label="Real parabola")
     plt.legend()
     plt.show()
+
+
+@ogle_cli.command("monte-carlo")
+@click.option(
+    "-d",
+    "--data-path",
+    type=click.Path(dir_okay=False, path_type=Path, exists=True),
+)
+@click.option("--random", "is_random", is_flag=True, default=False)
+@click.option("-e", "--experiments", type=int, default=DEFAULT_EXPERIMENTS)
+def monte_carlo_cli(data_path, is_random, experiments):
+    real_a, x, y = read_data(data_path=data_path, is_random=is_random)
+    a_results = []
+    click.echo("Running experiments...")
+    for _ in tqdm.trange(experiments):
+        x_samples, y_samples = sample_records(x, y)
+        a_results.append(fit_parabolic_data(x_samples, y_samples).a)
+    click.echo("Done!")
+    a_results = np.vstack(a_results)
+    a, aerr = np.mean(a_results, axis=0), np.std(a_results, axis=0)
+    arelerr = np.abs(aerr / a)
+    for i in range(a.shape[0]):
+        plt.title(
+            rf"Values hist for a[{i}] - {a[i]:.2f} $\pm$ {aerr[i]:.2f} "
+            f"( {arelerr[i] * 100 :.2f}% )"
+        )
+        plt.hist(a_results[:, i], bins=20)
+        plt.show()
+        plt.clf()
+    for i in range(a.shape[0] - 1):
+        for j in range(i + 1, a.shape[0]):
+            x = a_results[:, i]
+            y = a_results[:, j]
+            covariance = np.cov(x, y)[0, 1]
+            plt.title(rf"Covariance for a[{i}] and a[{j}] - {covariance:.2f}")
+            plt.scatter(x, y)
+            plt.show()
+            plt.clf()
 
 
 if __name__ == "__main__":

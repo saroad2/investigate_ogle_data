@@ -25,3 +25,10 @@ def generate_parabolic_data(
     yerr = np.random.normal(loc=1, scale=y_rel_err, size=data_points)
     y = np.polyval(a, x * xerr) * yerr
     return a, x, y
+
+
+def sample_records(x, y):
+    n = x.shape[0]
+    indices = np.random.choice(np.arange(n), size=n)
+    indices.sort()
+    return x[indices], y[indices]

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 DEFAULT_DATA_PATH = Path.home() / "parabolic_data.csv"
+DEFAULT_EXPERIMENTS = 10_000
 DEFAULT_RELATIVE_ERROR = 0.05
 DEFAULT_DATA_POINTS = 100
 MIN_X, MAX_X = 0, 10
