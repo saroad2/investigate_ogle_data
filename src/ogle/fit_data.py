@@ -29,10 +29,9 @@ def fit_parabolic_data(x, y):
     n_matrix = np.linalg.inv(np.dot(vander.T, vander))
     a = np.dot(np.dot(n_matrix, vander.T), y) / scale
     degrees_of_freedom = x.shape[0] - 3
-    residuals = float(np.sum(np.power(y - np.polyval(a, x), 2)))
-    chi2 = residuals / degrees_of_freedom
+    chi2 = float(np.sum(np.power(y - np.polyval(a, x), 2)))
     acov = n_matrix / np.outer(scale, scale)
-    acov *= chi2
+    acov *= chi2 / degrees_of_freedom
     return FitResult(a=a, acov=acov, chi2=chi2, degrees_of_freedom=degrees_of_freedom)
 
 
