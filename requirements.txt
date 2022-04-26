@@ -1,6 +1,0 @@
-click
-numpy
-matplotlib
-pandas
-scipy
-tqdm
