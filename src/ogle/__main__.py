@@ -17,6 +17,8 @@ from ogle.io_util import read_data
 from ogle.ogle_util import extract_microlensing_properties
 from ogle.random_data import generate_parabolic_data, sample_records
 
+MICROLENSING_PROPERTY_NAMES = ["t0", "f_max", "u_min"]
+
 
 @click.group()
 def ogle_cli():
@@ -125,32 +127,50 @@ def fit_data_cli(data_path, is_random):
 @click.option("--random", "is_random", is_flag=True, default=False)
 @click.option("-e", "--experiments", type=int, default=DEFAULT_EXPERIMENTS)
 def monte_carlo_cli(data_path, is_random, experiments):
-    real_a, x, y = read_data(data_path=data_path, is_random=is_random)
-    a_results = []
+    output_dir = data_path.parent / f"{data_path.stem}_monte_carlo_results"
+    output_dir.mkdir(exist_ok=True)
+    _, x, y = read_data(data_path=data_path, is_random=is_random)
+    results = []
     click.echo("Running experiments...")
     for _ in tqdm.trange(experiments):
         x_samples, y_samples = sample_records(x, y)
-        a_results.append(fit_parabolic_data(x_samples, y_samples).a)
+        fit_results = fit_parabolic_data(x_samples, y_samples)
+        results.append(extract_microlensing_properties(fit_results.a, fit_results.aerr))
     click.echo("Done!")
-    a_results = np.vstack(a_results)
-    a, aerr = np.mean(a_results, axis=0), np.std(a_results, axis=0)
-    arelerr = np.abs(aerr / a)
-    for i in range(a.shape[0]):
+    for property_name in MICROLENSING_PROPERTY_NAMES:
+        a = np.array([result[property_name].nominal_value for result in results])
+        aerr = np.array([result[property_name].std_dev for result in results])
+        mean_value = np.mean(a)
+        sample_error = np.sqrt(np.sum(aerr**2)) / a.shape[0]
+        stat_error = np.std(a)
+        total_error = np.sqrt(sample_error**2 + stat_error**2)
+        percentage_error = total_error / np.fabs(mean_value) * 100
         plt.title(
-            rf"Values hist for a[{i}] - {a[i]:.2f} $\pm$ {aerr[i]:.2f} "
-            f"( {arelerr[i] * 100 :.2f}% )"
+            f"Values hist for {property_name} - {mean_value:.2f} "
+            rf"$\pm$ {total_error:.2f} "
+            f"( {percentage_error:.2f}% )"
         )
-        plt.hist(a_results[:, i], bins=20)
-        plt.show()
+        plt.hist(a, bins=50)
+        plt.savefig(output_dir / f"{property_name}_hist.png")
         plt.clf()
-    for i in range(a.shape[0] - 1):
-        for j in range(i + 1, a.shape[0]):
-            x = a_results[:, i]
-            y = a_results[:, j]
+    for i in range(len(MICROLENSING_PROPERTY_NAMES) - 1):
+        for j in range(i + 1, len(MICROLENSING_PROPERTY_NAMES)):
+            property_name1, property_name2 = (
+                MICROLENSING_PROPERTY_NAMES[i],
+                MICROLENSING_PROPERTY_NAMES[j],
+            )
+            x = np.array([result[property_name1].nominal_value for result in results])
+            y = np.array([result[property_name2].nominal_value for result in results])
             covariance = np.cov(x, y)[0, 1]
-            plt.title(rf"Covariance for a[{i}] and a[{j}] - {covariance:.2f}")
+            correlation = covariance / (np.mean(x) * np.mean(y))
+            plt.title(
+                f"Correlation for {property_name1} and {property_name2} "
+                f"- {correlation:.2f}"
+            )
             plt.scatter(x, y)
-            plt.show()
+            plt.savefig(
+                output_dir / f"{property_name1}_{property_name2}_correlation.png"
+            )
             plt.clf()
 
 
