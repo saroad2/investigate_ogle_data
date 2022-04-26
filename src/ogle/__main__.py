@@ -84,13 +84,15 @@ def generate_parabolic_data_cli(output_path, data_points, x_rel_err, y_rel_err, 
 def fit_data_cli(data_path, is_random):
     real_a, x, y = read_data(data_path=data_path, is_random=is_random)
     fit_result = fit_parabolic_data(x=x, y=y)
-    plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2f}$)")
+
+    plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2e}$)")
     plt.scatter(x, y, label="Data points")
     plt.plot(x, np.polyval(fit_result.a, x), label="Evaluated parabola")
     if real_a is not None:
         plt.plot(x, np.polyval(real_a, x), label="Real parabola")
     plt.legend()
     plt.show()
+    plt.clf()
 
 
 @ogle_cli.command("monte-carlo")
