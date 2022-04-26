@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import click
@@ -13,6 +14,7 @@ from ogle.constants import (
 )
 from ogle.fit_data import fit_parabolic_data
 from ogle.io_util import read_data
+from ogle.ogle_util import extract_microlensing_properties
 from ogle.random_data import generate_parabolic_data, sample_records
 
 
@@ -82,8 +84,13 @@ def generate_parabolic_data_cli(output_path, data_points, x_rel_err, y_rel_err, 
 )
 @click.option("--random", "is_random", is_flag=True, default=False)
 def fit_data_cli(data_path, is_random):
+    output_dir = data_path.parent / f"{data_path.stem}_fitting_results"
+    output_dir.mkdir(exist_ok=True)
     real_a, x, y = read_data(data_path=data_path, is_random=is_random)
     fit_result = fit_parabolic_data(x=x, y=y)
+    microlensing_properties = extract_microlensing_properties(
+        a=fit_result.a, aerr=fit_result.aerr
+    )
 
     plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2e}$)")
     plt.scatter(x, y, label="Data points")
@@ -91,8 +98,22 @@ def fit_data_cli(data_path, is_random):
     if real_a is not None:
         plt.plot(x, np.polyval(real_a, x), label="Real parabola")
     plt.legend()
-    plt.show()
+    plt.savefig(output_dir / "parabolic_fit.png")
     plt.clf()
+
+    with open(output_dir / "fit_result.json", mode="w") as fd:
+        result_as_dict = fit_result.as_dict()
+        result_as_dict.update(
+            {
+                key: [
+                    value.nominal_value,
+                    value.std_dev,
+                    value.std_dev / np.fabs(value.nominal_value) * 100,
+                ]
+                for key, value in microlensing_properties.items()
+            }
+        )
+        json.dump(result_as_dict, fd, indent=2)
 
 
 @ogle_cli.command("monte-carlo")

@@ -21,6 +21,18 @@ class FitResult:
         self.arelerr = np.abs(self.aerr / self.a)
         self.p_value = stats.chi2.sf(self.chi2, self.degrees_of_freedom)
 
+    def as_dict(self):
+        self_as_dict = dict(
+            degrees_of_freedom=self.degrees_of_freedom,
+            chi2=self.chi2,
+            chi2_reduced=self.chi2_reduced,
+            acov=self.acov.tolist(),
+            pvalue=self.p_value,
+        )
+        for i, (a_val, aerr_val) in enumerate(zip(self.a, self.aerr), start=1):
+            self_as_dict[f"a{i}"] = [a_val, aerr_val, aerr_val / np.fabs(a_val) * 100]
+        return self_as_dict
+
 
 def fit_parabolic_data(x, y):
     vander = vander_matrix(x, n=2)
