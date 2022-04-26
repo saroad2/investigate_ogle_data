@@ -21,6 +21,35 @@ def ogle_cli():
     """Evaluate OGLE data."""
 
 
+@ogle_cli.command("build-parabolic-data")
+@click.argument(
+    "data_path",
+    type=click.Path(dir_okay=False, path_type=Path, exists=True),
+)
+@click.option("-n", "--data-points", type=int, default=DEFAULT_DATA_POINTS)
+@click.option("--show/--no-show", is_flag=True, default=False)
+def build_parabolic(data_path, data_points, show):
+    with open(data_path) as fd:
+        rows = fd.readlines()
+    rows = [list(map(float, row.replace("\n", "").split())) for row in rows]
+    x, y, _, _, _ = zip(*rows)
+    x, y = np.array(x), np.array(y)
+    x -= x[0]
+    y = np.power(10, (y[0] - y) / 2.5)
+    max_index = np.argmax(y)
+    delta_index = data_points // 2
+    x, y = (
+        x[max_index - delta_index : max_index + delta_index],
+        y[max_index - delta_index : max_index + delta_index],
+    )
+    if show:
+        plt.plot(x, y)
+        plt.show()
+        plt.clf()
+    output_path = data_path.parent / f"{data_path.stem}.csv"
+    pd.DataFrame(dict(x=x, y=y)).to_csv(output_path, index=False, header=True)
+
+
 @ogle_cli.command("generate-parabolic-data")
 @click.option(
     "-o",
