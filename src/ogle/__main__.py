@@ -29,7 +29,7 @@ def ogle_cli():
 @click.argument("data_path", type=click.Path(path_type=Path, exists=True))
 @click.option("--show/--no-show", is_flag=True, default=False)
 def build_parabolic(data_path, show):
-    data_paths = search_data_paths(data_path)
+    data_paths = search_data_paths(data_path, suffix="dat")
     for i, path in enumerate(data_paths, start=1):
         click.echo(f"Build data for {path} ({i}/{len(data_paths)})")
         x, y, y_err = build_data(path)
@@ -68,51 +68,50 @@ def generate_parabolic_data_cli(output_path, data_points, x_rel_err, y_rel_err, 
 
 
 @ogle_cli.command("fit-data")
-@click.option(
-    "-d",
-    "--data-path",
-    type=click.Path(dir_okay=False, path_type=Path, exists=True),
-)
+@click.option("-d", "--data-path", type=click.Path(path_type=Path, exists=True))
 @click.option("--random", "is_random", is_flag=True, default=False)
 @click.option("-n", "--data-points", type=int, default=DEFAULT_DATA_POINTS)
 def fit_data_cli(data_path, is_random, data_points):
-    output_dir = data_path.parent / f"{data_path.stem}_fitting_results"
-    output_dir.mkdir(exist_ok=True)
-    real_a, x, y = read_data(data_path=data_path, is_random=is_random)
-    max_index = np.argmax(y)
+    data_paths = search_data_paths(data_path, suffix="csv")
     delta_index = data_points // 2
-    x, y = (
-        x[max_index - delta_index : max_index + delta_index],
-        y[max_index - delta_index : max_index + delta_index],
-    )
-    x -= x[0]
-    fit_result = fit_parabolic_data(x=x, y=y)
-    microlensing_properties = extract_microlensing_properties(
-        a=fit_result.a, aerr=fit_result.aerr
-    )
-
-    plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2e}$)")
-    plt.scatter(x, y, label="Data points")
-    plt.plot(x, np.polyval(fit_result.a, x), label="Evaluated parabola")
-    if real_a is not None:
-        plt.plot(x, np.polyval(real_a, x), label="Real parabola")
-    plt.legend()
-    plt.savefig(output_dir / "parabolic_fit.png")
-    plt.clf()
-
-    with open(output_dir / "fit_result.json", mode="w") as fd:
-        result_as_dict = fit_result.as_dict()
-        result_as_dict.update(
-            {
-                key: [
-                    value.nominal_value,
-                    value.std_dev,
-                    value.std_dev / np.fabs(value.nominal_value) * 100,
-                ]
-                for key, value in microlensing_properties.items()
-            }
+    for i, path in enumerate(data_paths, start=1):
+        click.echo(f"Fit data for {path} ({i}/{len(data_paths)})")
+        output_dir = path.with_name(f"{path.stem}_fitting_results")
+        output_dir.mkdir(exist_ok=True)
+        real_a, x, y = read_data(data_path=path, is_random=is_random)
+        max_index = np.argmax(y)
+        x, y = (
+            x[max_index - delta_index : max_index + delta_index],
+            y[max_index - delta_index : max_index + delta_index],
         )
-        json.dump(result_as_dict, fd, indent=2)
+        t_start = x[0]
+        fit_result = fit_parabolic_data(x=x - t_start, y=y)
+        microlensing_properties = extract_microlensing_properties(
+            a=fit_result.a, aerr=fit_result.aerr, t_start=t_start
+        )
+
+        plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2e}$)")
+        plt.scatter(x, y, label="Data points")
+        plt.plot(x, np.polyval(fit_result.a, x - t_start), label="Evaluated parabola")
+        if real_a is not None:
+            plt.plot(x, np.polyval(real_a, x - t_start), label="Real parabola")
+        plt.legend()
+        plt.savefig(output_dir / "parabolic_fit.png")
+        plt.clf()
+
+        with open(output_dir / "fit_result.json", mode="w") as fd:
+            result_as_dict = fit_result.as_dict()
+            result_as_dict.update(
+                {
+                    key: [
+                        value.nominal_value,
+                        value.std_dev,
+                        value.std_dev / np.fabs(value.nominal_value) * 100,
+                    ]
+                    for key, value in microlensing_properties.items()
+                }
+            )
+            json.dump(result_as_dict, fd, indent=2)
 
 
 @ogle_cli.command("monte-carlo")

@@ -16,15 +16,15 @@ def read_data(data_path=None, is_random=False):
     return None, df["x"].to_numpy(), df["y"].to_numpy()
 
 
-def search_data_paths(root_path: Path) -> List[Path]:
+def search_data_paths(root_path: Path, suffix: str) -> List[Path]:
     if root_path.is_file():
         return [root_path]
     data_paths = []
     for inner_path in root_path.iterdir():
-        if inner_path.is_file() and inner_path.name == f"{DATA_FILE_NAME}.dat":
+        if inner_path.is_file() and inner_path.name == f"{DATA_FILE_NAME}.{suffix}":
             data_paths.append(inner_path)
         if inner_path.is_dir():
-            data_paths.extend(search_data_paths(inner_path))
+            data_paths.extend(search_data_paths(inner_path, suffix=suffix))
     return data_paths
 
 
