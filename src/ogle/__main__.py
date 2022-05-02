@@ -30,9 +30,8 @@ def ogle_cli():
     "data_path",
     type=click.Path(dir_okay=False, path_type=Path, exists=True),
 )
-@click.option("-n", "--data-points", type=int, default=DEFAULT_DATA_POINTS)
 @click.option("--show/--no-show", is_flag=True, default=False)
-def build_parabolic(data_path, data_points, show):
+def build_parabolic(data_path, show):
     with open(data_path) as fd:
         rows = fd.readlines()
     rows = [list(map(float, row.replace("\n", "").split())) for row in rows]
@@ -40,12 +39,6 @@ def build_parabolic(data_path, data_points, show):
     x, y = np.array(x), np.array(y)
     x -= x[0]
     y = np.power(10, (y[0] - y) / 2.5)
-    max_index = np.argmax(y)
-    delta_index = data_points // 2
-    x, y = (
-        x[max_index - delta_index : max_index + delta_index],
-        y[max_index - delta_index : max_index + delta_index],
-    )
     if show:
         plt.plot(x, y)
         plt.show()
@@ -85,10 +78,18 @@ def generate_parabolic_data_cli(output_path, data_points, x_rel_err, y_rel_err, 
     type=click.Path(dir_okay=False, path_type=Path, exists=True),
 )
 @click.option("--random", "is_random", is_flag=True, default=False)
-def fit_data_cli(data_path, is_random):
+@click.option("-n", "--data-points", type=int, default=DEFAULT_DATA_POINTS)
+def fit_data_cli(data_path, is_random, data_points):
     output_dir = data_path.parent / f"{data_path.stem}_fitting_results"
     output_dir.mkdir(exist_ok=True)
     real_a, x, y = read_data(data_path=data_path, is_random=is_random)
+    max_index = np.argmax(y)
+    delta_index = data_points // 2
+    x, y = (
+        x[max_index - delta_index : max_index + delta_index],
+        y[max_index - delta_index : max_index + delta_index],
+    )
+    x -= x[0]
     fit_result = fit_parabolic_data(x=x, y=y)
     microlensing_properties = extract_microlensing_properties(
         a=fit_result.a, aerr=fit_result.aerr
