@@ -32,8 +32,9 @@ def build_data(data_path: Path):
     with open(data_path) as fd:
         rows = fd.readlines()
     float_rows = [list(map(float, row.replace("\n", "").split())) for row in rows]
-    x, y, _, _, _ = zip(*float_rows)
-    x, y = np.array(x), np.array(y)
+    x, m, m_err, _, _ = zip(*float_rows)
+    x, m, m_err = np.array(x), np.array(m), np.array(m_err)
     x -= x[0]
-    y = np.power(10, (y[0] - y) / 2.5)
-    return x, y
+    y = np.power(10, (m[0] - m) / 2.5)
+    y_err = (np.log(10) * y * m_err / 2.5) ** 2
+    return x, y, y_err
