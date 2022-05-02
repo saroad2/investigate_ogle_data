@@ -1,5 +1,7 @@
 from pathlib import Path
 
+DATA_FILE_NAME = "phot"
+
 DEFAULT_DATA_PATH = Path.home() / "parabolic_data.csv"
 DEFAULT_EXPERIMENTS = 10_000
 DEFAULT_RELATIVE_ERROR = 0.05
