@@ -1,5 +1,20 @@
+import numpy as np
 from uncertainties import ufloat
 from uncertainties.umath import *  # noqa: F403
+
+
+def calculate_intensity(t, t0, tau, u_min, f_bl):
+    u = calculate_u(t=t, t0=t0, u_min=u_min, tau=tau)
+    mu = calculate_mu(u)
+    return f_bl * mu + 1 - f_bl
+
+
+def calculate_u(t, t0, tau, u_min):
+    return np.sqrt(u_min**2 + ((t - t0) / tau) ** 2)
+
+
+def calculate_mu(u):
+    return (u**2 + 2) / (u * np.sqrt(u**2 + 4))
 
 
 def extract_microlensing_properties(a, aerr, t_start):
