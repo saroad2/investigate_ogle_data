@@ -146,6 +146,7 @@ def monte_carlo_cli(data_path, is_random, experiments, data_points):
         click.echo("Done!")
         for property_name in MICROLENSING_PROPERTY_NAMES:
             a = np.array([result[property_name].nominal_value for result in results])
+            a.sort()
             aerr = np.array([result[property_name].std_dev for result in results])
             mean_value = np.mean(a)
             sample_error = np.sqrt(np.sum(aerr**2)) / a.shape[0]
@@ -153,11 +154,15 @@ def monte_carlo_cli(data_path, is_random, experiments, data_points):
             total_error = np.sqrt(sample_error**2 + stat_error**2)
             percentage_error = total_error / np.fabs(mean_value) * 100
             plt.title(
-                f"Values hist for {property_name} - {mean_value:.2f} "
-                rf"$\pm$ {total_error:.2f} "
+                f"Values hist for {property_name} - {mean_value:.2e} "
+                rf"$\pm$ {total_error:.2e} "
                 f"( {percentage_error:.2f}% )"
             )
+            plt.xlabel(f"{property_name} values")
+            plt.ylabel("Count")
+            max_hist = np.max(np.histogram(a, bins=50)[0])
             plt.hist(a, bins=50)
+            plt.plot(a, max_hist * np.exp(-(((a - mean_value) / total_error) ** 2)))
             plt.savefig(output_dir / f"{property_name}_hist.png")
             plt.clf()
         for i in range(len(MICROLENSING_PROPERTY_NAMES) - 1):
