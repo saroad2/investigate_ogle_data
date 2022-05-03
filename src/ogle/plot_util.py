@@ -80,7 +80,7 @@ def plot_monte_carlo_results(results, output_dir):
             plt.clf()
 
 
-def plot_2d_grid(chi2_grid, t0_values, u_min_values):
+def plot_2d_grid(chi2_grid, t0_values, u_min_values, output_path):
     x_min, x_max, y_min, y_max = (
         t0_values[0],
         t0_values[-1],
@@ -94,7 +94,11 @@ def plot_2d_grid(chi2_grid, t0_values, u_min_values):
     X, Y = np.meshgrid(t0_values, u_min_values)
     c = plt.contour(X, Y, chi2_grid, colors="yellow", linestyles="dashed")
     c.clabel(inline=True)
+    i, j = np.unravel_index(chi2_grid.argmin(), chi2_grid.shape)
+    plt.plot(
+        [t0_values[i]], [u_min_values[j]], linestyle="none", marker="o", color="yellow"
+    )
     plt.xlabel("$t_0$")
     plt.ylabel("$u_{min}$")
-    plt.show()
+    plt.savefig(output_path)
     plt.clf()
