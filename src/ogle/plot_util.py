@@ -78,3 +78,23 @@ def plot_monte_carlo_results(results, output_dir):
                 output_dir / f"{property_name1}_{property_name2}_correlation.png"
             )
             plt.clf()
+
+
+def plot_2d_grid(chi2_grid, t0_values, u_min_values):
+    x_min, x_max, y_min, y_max = (
+        t0_values[0],
+        t0_values[-1],
+        u_min_values[0],
+        u_min_values[-1],
+    )
+    heatmap = plt.imshow(
+        chi2_grid, origin="lower", extent=[x_min, x_max, y_min, y_max], aspect="auto"
+    )
+    plt.colorbar(heatmap)
+    X, Y = np.meshgrid(t0_values, u_min_values)
+    c = plt.contour(X, Y, chi2_grid, colors="yellow", linestyles="dashed")
+    c.clabel(inline=True)
+    plt.xlabel("$t_0$")
+    plt.ylabel("$u_{min}$")
+    plt.show()
+    plt.clf()
