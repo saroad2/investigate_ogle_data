@@ -10,5 +10,5 @@ def extract_microlensing_properties(a, aerr, t_start):
     )
     t0 = t_start - a2 / (2 * a1)
     f_max = a3 - (a2**2) / (4 * a1)
-    u_min = sqrt(2 * (f_max / sqrt(f_max - 1) - 1))  # noqa: F405
+    u_min = sqrt(2 * (f_max / sqrt(f_max**2 - 1) - 1))  # noqa: F405
     return dict(t0=t0, f_max=f_max, u_min=u_min)
