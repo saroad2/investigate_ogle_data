@@ -71,7 +71,12 @@ def generate_parabolic_data_cli(output_path, data_points, x_rel_err, y_rel_err, 
 @click.option("--random", "is_random", is_flag=True, default=False)
 @click.option("-n", "--data-points", type=int, default=DEFAULT_DATA_POINTS)
 @click.option("-e", "--experiments", type=int, default=DEFAULT_EXPERIMENTS)
-def fit_data_cli(data_path, is_random, data_points, experiments):
+@click.option(
+    "--monte-carlo/--no-monte-carlo",
+    is_flag=True,
+    default=True,
+)
+def fit_data_cli(data_path, is_random, data_points, monte_carlo, experiments):
     data_paths = search_data_paths(data_path, suffix="csv")
     delta_index = data_points // 2
     for i, path in enumerate(data_paths, start=1):
@@ -95,6 +100,8 @@ def fit_data_cli(data_path, is_random, data_points, experiments):
             real_a=real_a,
         )
         click.echo("Done!")
+        if not monte_carlo:
+            continue
         click.echo("Running monte Carlo...")
         results = []
         for _ in tqdm.trange(experiments):
