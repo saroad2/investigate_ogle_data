@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import click
@@ -15,9 +14,8 @@ from ogle.constants import (
 from ogle.fit_data import fit_parabolic_data
 from ogle.io_util import build_data, read_data, search_data_paths
 from ogle.ogle_util import extract_microlensing_properties
+from ogle.plot_util import plot_monte_carlo_results, plot_parabolic_fit
 from ogle.random_data import generate_parabolic_data, sample_records
-
-MICROLENSING_PROPERTY_NAMES = ["t0", "f_max", "u_min"]
 
 
 @click.group()
@@ -71,13 +69,13 @@ def generate_parabolic_data_cli(output_path, data_points, x_rel_err, y_rel_err, 
 @click.option("-d", "--data-path", type=click.Path(path_type=Path, exists=True))
 @click.option("--random", "is_random", is_flag=True, default=False)
 @click.option("-n", "--data-points", type=int, default=DEFAULT_DATA_POINTS)
-def fit_data_cli(data_path, is_random, data_points):
+@click.option("-e", "--experiments", type=int, default=DEFAULT_EXPERIMENTS)
+def fit_data_cli(data_path, is_random, data_points, experiments):
     data_paths = search_data_paths(data_path, suffix="csv")
     delta_index = data_points // 2
     for i, path in enumerate(data_paths, start=1):
         click.echo(f"Fit data for {path} ({i}/{len(data_paths)})")
-        output_dir = path.with_name(f"{path.stem}_fitting_results")
-        output_dir.mkdir(exist_ok=True)
+
         real_a, x, y = read_data(data_path=path, is_random=is_random)
         max_index = np.argmax(y)
         x, y = (
@@ -85,55 +83,19 @@ def fit_data_cli(data_path, is_random, data_points):
             y[max_index - delta_index : max_index + delta_index],
         )
         t_start = x[0]
+        click.echo("Fitting parabolic...")
         fit_result = fit_parabolic_data(x=x - t_start, y=y)
-        microlensing_properties = extract_microlensing_properties(
-            a=fit_result.a, aerr=fit_result.aerr, t_start=t_start
+        plot_parabolic_fit(
+            x=x,
+            y=y,
+            fit_result=fit_result,
+            t_start=t_start,
+            output_dir=path.with_name(f"{path.stem}_fitting_results"),
+            real_a=real_a,
         )
-
-        plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2e}$)")
-        plt.scatter(x, y, label="Data points")
-        plt.plot(x, np.polyval(fit_result.a, x - t_start), label="Evaluated parabola")
-        if real_a is not None:
-            plt.plot(x, np.polyval(real_a, x - t_start), label="Real parabola")
-        plt.legend()
-        plt.savefig(output_dir / "parabolic_fit.png")
-        plt.clf()
-
-        with open(output_dir / "fit_result.json", mode="w") as fd:
-            result_as_dict = fit_result.as_dict()
-            result_as_dict.update(
-                {
-                    key: [
-                        value.nominal_value,
-                        value.std_dev,
-                        value.std_dev / np.fabs(value.nominal_value) * 100,
-                    ]
-                    for key, value in microlensing_properties.items()
-                }
-            )
-            json.dump(result_as_dict, fd, indent=2)
-
-
-@ogle_cli.command("monte-carlo")
-@click.option("-d", "--data-path", type=click.Path(path_type=Path, exists=True))
-@click.option("--random", "is_random", is_flag=True, default=False)
-@click.option("-e", "--experiments", type=int, default=DEFAULT_EXPERIMENTS)
-@click.option("-n", "--data-points", type=int, default=DEFAULT_DATA_POINTS)
-def monte_carlo_cli(data_path, is_random, experiments, data_points):
-    data_paths = search_data_paths(data_path, suffix="csv")
-    delta_index = data_points // 2
-    for i, path in enumerate(data_paths, start=1):
-        click.echo(f"Fit data for {path} ({i}/{len(data_paths)})")
-        output_dir = path.with_name(f"{path.stem}_monte_carlo_results")
-        output_dir.mkdir(exist_ok=True)
-        _, x, y = read_data(data_path=path, is_random=is_random)
-        max_index = np.argmax(y)
-        x, y = (
-            x[max_index - delta_index : max_index + delta_index],
-            y[max_index - delta_index : max_index + delta_index],
-        )
+        click.echo("Done!")
+        click.echo("Running monte Carlo...")
         results = []
-        click.echo("Running experiments...")
         for _ in tqdm.trange(experiments):
             x_samples, y_samples = sample_records(x, y)
             t_start = x_samples[0]
@@ -143,51 +105,10 @@ def monte_carlo_cli(data_path, is_random, experiments, data_points):
                     fit_results.a, fit_results.aerr, t_start=t_start
                 )
             )
+        plot_monte_carlo_results(
+            results, output_dir=path.with_name(f"{path.stem}_monte_carlo_results")
+        )
         click.echo("Done!")
-        for property_name in MICROLENSING_PROPERTY_NAMES:
-            a = np.array([result[property_name].nominal_value for result in results])
-            a.sort()
-            aerr = np.array([result[property_name].std_dev for result in results])
-            mean_value = np.mean(a)
-            sample_error = np.sqrt(np.sum(aerr**2)) / a.shape[0]
-            stat_error = np.std(a)
-            total_error = np.sqrt(sample_error**2 + stat_error**2)
-            percentage_error = total_error / np.fabs(mean_value) * 100
-            plt.title(
-                f"Values hist for {property_name} - {mean_value:.2e} "
-                rf"$\pm$ {total_error:.2e} "
-                f"( {percentage_error:.2f}% )"
-            )
-            plt.xlabel(f"{property_name} values")
-            plt.ylabel("Count")
-            max_hist = np.max(np.histogram(a, bins=50)[0])
-            plt.hist(a, bins=50)
-            plt.plot(a, max_hist * np.exp(-(((a - mean_value) / total_error) ** 2)))
-            plt.savefig(output_dir / f"{property_name}_hist.png")
-            plt.clf()
-        for i in range(len(MICROLENSING_PROPERTY_NAMES) - 1):
-            for j in range(i + 1, len(MICROLENSING_PROPERTY_NAMES)):
-                property_name1, property_name2 = (
-                    MICROLENSING_PROPERTY_NAMES[i],
-                    MICROLENSING_PROPERTY_NAMES[j],
-                )
-                x = np.array(
-                    [result[property_name1].nominal_value for result in results]
-                )
-                y = np.array(
-                    [result[property_name2].nominal_value for result in results]
-                )
-                covariance = np.cov(x, y)[0, 1]
-                correlation = covariance / (np.mean(x) * np.mean(y))
-                plt.title(
-                    f"Correlation for {property_name1} and {property_name2} "
-                    f"- {correlation:.2f}"
-                )
-                plt.scatter(x, y)
-                plt.savefig(
-                    output_dir / f"{property_name1}_{property_name2}_correlation.png"
-                )
-                plt.clf()
 
 
 if __name__ == "__main__":
