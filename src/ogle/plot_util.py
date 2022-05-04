@@ -4,8 +4,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from ogle.ogle_util import extract_microlensing_properties
 
-MICROLENSING_PROPERTY_NAMES = ["t0", "f_max", "u_min"]
-
 
 def plot_parabolic_fit(x, y, fit_result, t_start, output_dir, real_a=None):
     output_dir.mkdir(exist_ok=True)
@@ -36,12 +34,14 @@ def plot_parabolic_fit(x, y, fit_result, t_start, output_dir, real_a=None):
         json.dump(result_as_dict, fd, indent=2)
 
 
-def plot_monte_carlo_results(results, output_dir):
+def plot_monte_carlo_results(
+    results, property_names, output_dir, normal_curve: bool = True
+):
     output_dir.mkdir(exist_ok=True)
-    for property_name in MICROLENSING_PROPERTY_NAMES:
-        a = np.array([result[property_name].nominal_value for result in results])
+    for property_name in property_names:
+        a = np.array([result[property_name] for result in results])
         a.sort()
-        aerr = np.array([result[property_name].std_dev for result in results])
+        aerr = np.array([result[f"{property_name}_error"] for result in results])
         mean_value = np.mean(a)
         sample_error = np.sqrt(np.sum(aerr**2)) / a.shape[0]
         stat_error = np.std(a)
@@ -56,17 +56,18 @@ def plot_monte_carlo_results(results, output_dir):
         plt.ylabel("Count")
         max_hist = np.max(np.histogram(a, bins=50)[0])
         plt.hist(a, bins=50)
-        plt.plot(a, max_hist * np.exp(-(((a - mean_value) / total_error) ** 2)))
+        if normal_curve:
+            plt.plot(a, max_hist * np.exp(-(((a - mean_value) / total_error) ** 2)))
         plt.savefig(output_dir / f"{property_name}_hist.png")
         plt.clf()
-    for i in range(len(MICROLENSING_PROPERTY_NAMES) - 1):
-        for j in range(i + 1, len(MICROLENSING_PROPERTY_NAMES)):
+    for i in range(len(property_names) - 1):
+        for j in range(i + 1, len(property_names)):
             property_name1, property_name2 = (
-                MICROLENSING_PROPERTY_NAMES[i],
-                MICROLENSING_PROPERTY_NAMES[j],
+                property_names[i],
+                property_names[j],
             )
-            x = np.array([result[property_name1].nominal_value for result in results])
-            y = np.array([result[property_name2].nominal_value for result in results])
+            x = np.array([result[property_name1] for result in results])
+            y = np.array([result[property_name2] for result in results])
             covariance = np.cov(x, y)[0, 1]
             correlation = covariance / (np.mean(x) * np.mean(y))
             plt.title(
