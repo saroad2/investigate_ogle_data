@@ -38,10 +38,18 @@ def plot_monte_carlo_results(
     results, property_names, output_dir, normal_curve: bool = True
 ):
     output_dir.mkdir(exist_ok=True)
+    results_dict = {}
     for property_name in property_names:
-        a = np.array([result[property_name] for result in results])
+        results_dict[property_name] = [result[property_name] for result in results]
+        results_dict[f"{property_name}_error"] = [
+            result[f"{property_name}_error"] for result in results
+        ]
+    with open(output_dir / "results.json", mode="w") as fd:
+        json.dump(results_dict, fd, indent=2)
+    for property_name in property_names:
+        a = np.array(results_dict[property_name])
         a.sort()
-        aerr = np.array([result[f"{property_name}_error"] for result in results])
+        aerr = np.array(results_dict[f"{property_name}_error"])
         mean_value = np.mean(a)
         sample_error = np.sqrt(np.sum(aerr**2)) / a.shape[0]
         stat_error = np.std(a)
@@ -54,9 +62,9 @@ def plot_monte_carlo_results(
         )
         plt.xlabel(f"{property_name} values")
         plt.ylabel("Count")
-        max_hist = np.max(np.histogram(a, bins=50)[0])
         plt.hist(a, bins=50)
         if normal_curve:
+            max_hist = np.max(np.histogram(a, bins=50)[0])
             plt.plot(a, max_hist * np.exp(-(((a - mean_value) / total_error) ** 2)))
         plt.savefig(output_dir / f"{property_name}_hist.png")
         plt.clf()
@@ -69,12 +77,13 @@ def plot_monte_carlo_results(
             x = np.array([result[property_name1] for result in results])
             y = np.array([result[property_name2] for result in results])
             covariance = np.cov(x, y)[0, 1]
-            correlation = covariance / (np.mean(x) * np.mean(y))
             plt.title(
-                f"Correlation for {property_name1} and {property_name2} "
-                f"- {correlation:.2f}"
+                f"Covariance for {property_name1} and {property_name2} "
+                f"- {covariance:.2e}"
             )
             plt.scatter(x, y)
+            plt.xlabel(property_name1)
+            plt.ylabel(property_name2)
             plt.savefig(
                 output_dir / f"{property_name1}_{property_name2}_correlation.png"
             )
