@@ -10,7 +10,7 @@ from ogle.constants import (
     DATA_FILE_NAME,
     DEFAULT_EXPERIMENTS,
     DEFAULT_SPACE_SEARCH,
-    MICROLENSING_PROPERTY_NAMES,
+    GRID_SEARCH_2D_NAMES,
 )
 from ogle.grid_search import (
     build_grid_matrix,
@@ -123,17 +123,18 @@ def monte_carlo_2d_cli(
     data_dir, tau, fbl, search_space, experiments, chi2_epsilon, normal_curve, workers
 ):
     data_path = data_dir / f"{DATA_FILE_NAME}.csv"
-    _, x, y = read_data(data_path=data_path, is_random=False)
+    _, x, y, yerr = read_data(data_path=data_path, is_random=False)
     with (data_dir / f"{DATA_FILE_NAME}_fitting_results" / "fit_Result.json").open(
         mode="r"
     ) as fd:
         results_json = json.load(fd)
-    t0_candidate = results_json["t0"][0]
-    u_min_candidate = results_json["u_min"][0]
+    t0_candidate = results_json["t0"]
+    u_min_candidate = results_json["u_min"]
     results = Parallel(n_jobs=workers, verbose=5)(
         delayed(iterative_grid_search_2d)(
             x=x,
             y=y,
+            yerr=yerr,
             t0_candidate=t0_candidate,
             u_min_candidate=u_min_candidate,
             tau=tau,
@@ -146,7 +147,7 @@ def monte_carlo_2d_cli(
     )
     plot_monte_carlo_results(
         results,
-        property_names=MICROLENSING_PROPERTY_NAMES + ["iterations"],
+        property_names=GRID_SEARCH_2D_NAMES,
         output_dir=data_dir / "grid_search_2d_monte_carlo_results",
         normal_curve=normal_curve,
     )

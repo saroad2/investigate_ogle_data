@@ -43,18 +43,24 @@ def iterative_grid_search_2d(
         chi2_grid_table = grid_search(
             x, y, yerr, t0=t0_values, u_min=u_min_values, tau=[tau], f_bl=[f_bl]
         )
-        result = extract_grid_search_best_approximation(chi2_grid_table)
-        min_chi2 = result["chi2"]
-        t0_candidate, u_min_candidate = (result["t0"], result["u_min"])
+        best_approximation = extract_grid_search_best_approximation(chi2_grid_table)
+        best_chi2 = best_approximation["chi2"]
+        results = dict(best_approximation)
+        results.update(
+            calculate_errors_dict(
+                chi2_grid_table, best_approximation, best_chi2=best_chi2
+            )
+        )
+        t0_candidate, u_min_candidate = (results["t0"], results["u_min"])
         if (
             prev_min_chi2 is not None
-            and np.fabs(prev_min_chi2 - min_chi2) / prev_min_chi2  # noqa: W503
+            and np.fabs(prev_min_chi2 - best_chi2) / prev_min_chi2  # noqa: W503
             < chi2_epsilon  # noqa: W503
         ):
-            result["iterations"] = index
-            result["iterations_error"] = 0
-            return result
-        prev_min_chi2 = min_chi2
+            results["iterations"] = index
+            results["iterations_error"] = 0
+            return results
+        prev_min_chi2 = best_chi2
         t0_step, u_min_step = t0_step / 2, u_min_step / 2
         index += 1
 

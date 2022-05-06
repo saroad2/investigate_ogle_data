@@ -3,6 +3,7 @@ import json
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.ticker import FormatStrFormatter
 from ogle.ogle_util import extract_microlensing_properties
 from scipy.integrate import trapz
 from scipy.stats import norm
@@ -68,10 +69,11 @@ def plot_monte_carlo_results(
         mu, sigma = norm.fit(a)
         percentage_error = sigma / np.fabs(mu) * 100
         plt.title(
-            f"Values hist for {property_name} - {mu:.2e} "
+            f"Values histogram for {property_name} - {mu:.2e} "
             rf"$\pm$ {sigma:.2e} "
             f"( {percentage_error:.2f}% )"
         )
+        plt.gca().xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
         plt.xlabel(f"{property_name} values")
         plt.ylabel("Count")
         hist_heights, bins_edges, _ = plt.hist(
