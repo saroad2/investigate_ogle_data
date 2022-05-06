@@ -1,12 +1,12 @@
+import itertools
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 from ogle.constants import CHI2_EPSILON
 from ogle.fit_data import calculate_chi2
 from ogle.ogle_util import calculate_intensity
 from ogle.random_data import sample_records
-from uncertainties import ufloat
-from uncertainties.umath import *  # noqa: F403
 
 
 def iterative_grid_search_2d(
@@ -40,12 +40,10 @@ def iterative_grid_search_2d(
             u_min_candidate + n * u_min_step
             for n in range(-search_space // 2, search_space // 2)
         ]
-        chi2_grid = grid_search_2d(
-            x, y, t0_values=t0_values, u_min_values=u_min_values, tau=tau, f_bl=f_bl
+        chi2_grid_table = grid_search(
+            x, y, yerr, t0=t0_values, u_min=u_min_values, tau=[tau], f_bl=[f_bl]
         )
-        result = extract_grid_search_2d_results(
-            chi2_grid=chi2_grid, t0_values=t0_values, u_min_values=u_min_values
-        )
+        result = extract_grid_search_best_approximation(chi2_grid_table)
         min_chi2 = result["chi2"]
         t0_candidate, u_min_candidate = (result["t0"], result["u_min"])
         if (
@@ -61,39 +59,91 @@ def iterative_grid_search_2d(
         index += 1
 
 
-def grid_search_2d(x, y, t0_values, u_min_values, tau, f_bl):
-    n, m = len(t0_values), len(u_min_values)
-    chi2_grid = np.zeros(shape=(n, m))
+def grid_search(x, y, yerr, **kwargs):
+    parameters = list(kwargs.keys())
+    indexes_permutations = itertools.product(
+        *[range(len(values)) for values in kwargs.values()]
+    )
+    columns = list(parameters)
+    columns.append("chi2")
+    rows = []
     degrees_of_freedom = x.shape[0] - 2
+    for k, indexes_permutation in enumerate(indexes_permutations):
+        row = dict()
+        parameters_dict = {
+            parameters[i]: kwargs[parameters[i]][j]
+            for i, j in enumerate(indexes_permutation)
+        }
+        row.update(parameters_dict)
+        intensity = calculate_intensity(t=x, **parameters_dict)
+        row["chi2"] = calculate_chi2(
+            y_true=y, y_pred=intensity, yerr=yerr, degrees_of_freedom=degrees_of_freedom
+        )
+        rows.append(row)
+    return pd.DataFrame(rows, columns=columns)
+
+
+def extract_grid_search_best_approximation(chi2_grid_table):
+    return chi2_grid_table[
+        chi2_grid_table["chi2"] == chi2_grid_table["chi2"].min()
+    ].to_dict("records")[0]
+
+
+def build_grid_matrix(chi2_grid_table, best_approximation, parameter1, parameter2):
+    filter_dict = dict(best_approximation)
+    del filter_dict[parameter1]
+    del filter_dict[parameter2]
+    filter_dict = {
+        key: value for key, value in filter_dict.items() if not key.endswith("index")
+    }
+    filtered_table = chi2_grid_table.loc[
+        (chi2_grid_table[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)
+    ]
+    parameter1_values = list(filtered_table[parameter1].unique())
+    parameter1_values.sort()
+    parameter2_values = list(filtered_table[parameter2].unique())
+    parameter2_values.sort()
+    n = len(parameter1_values)
+    m = len(parameter2_values)
+    grid = np.zeros(shape=(n, m))
     for i in range(n):
         for j in range(m):
-            t0, u_min = t0_values[i], u_min_values[j]
-            intensity = calculate_intensity(t=x, t0=t0, tau=tau, u_min=u_min, f_bl=f_bl)
-            chi2_grid[i, j] = calculate_chi2(
-                y_true=y, y_pred=intensity, degrees_of_freedom=degrees_of_freedom
+            parameter1_value, parameter2_value = (
+                parameter1_values[i],
+                parameter2_values[j],
             )
-    return chi2_grid
+            record = filtered_table[
+                filtered_table[parameter1].eq(parameter1_value)
+                & filtered_table[parameter2].eq(parameter2_value)  # noqa: W503
+            ]
+            grid[i, j] = record["chi2"].iloc[0]
+    return grid
 
 
-def extract_grid_search_2d_results(chi2_grid, t0_values, u_min_values):
-    i, j = np.unravel_index(chi2_grid.argmin(), chi2_grid.shape)
-    t0_val, u_min_val = t0_values[i], u_min_values[j]
-    min_chi2 = float(chi2_grid[i, j])
-    t0_error = get_error(t0_values, chi2_grid[:, j])
-    u_min_error = get_error(u_min_values, chi2_grid[i, :])
-    u_min = ufloat(u_min_val, u_min_error)
-    f_max = (u_min**2 + 2) / (u_min * sqrt(u_min**2 + 4))  # noqa: F405
-    return dict(
-        t0=t0_val,
-        t0_error=t0_error,
-        u_min=u_min_val,
-        u_min_error=u_min_error,
-        f_max=f_max.nominal_value,
-        f_max_error=f_max.std_dev,
-        chi2=min_chi2,
-    )
+def calculate_errors_dict(chi2_grid_table, best_approximation, best_chi2):
+    errors_dict = {}
+    for parameter in best_approximation.keys():
+        filter_dict = dict(best_approximation)
+        del filter_dict[parameter]
+        filtered_table = chi2_grid_table.loc[
+            (chi2_grid_table[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)
+        ]
+        parameter_values = filtered_table[parameter].to_numpy()
+        chi2_values = filtered_table["chi2"].to_numpy()
+        errors_dict[f"{parameter}_error"] = get_error(
+            values=parameter_values,
+            chi2=chi2_values,
+            best_chi2=best_chi2,
+            best_parameter=best_approximation[parameter],
+        )
+
+    return errors_dict
 
 
-def get_error(values, chi2):
-    values = np.array(values)[chi2 < 1]
-    return (values.max() - values.min()) / 2
+def get_error(values, chi2, best_chi2, best_parameter):
+    filtered_values = values[np.fabs(chi2 - best_chi2) > 1]
+    if filtered_values.shape[0] == 0:
+        return None
+    max_value = np.min(filtered_values[filtered_values > best_parameter])
+    min_value = np.max(filtered_values[filtered_values < best_parameter])
+    return (max_value - min_value) / 2

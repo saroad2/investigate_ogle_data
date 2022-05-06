@@ -2,29 +2,52 @@ import json
 
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
 from ogle.ogle_util import extract_microlensing_properties
 from scipy.integrate import trapz
 from scipy.stats import norm
 
 
-def plot_parabolic_fit(x, y, yerr, fit_result, t_start, output_dir, real_a=None):
+def plot_parabolic_fit(x, y, yerr, fit_result, t_start, output_dir):
     output_dir.mkdir(exist_ok=True)
     microlensing_properties = extract_microlensing_properties(
         a=fit_result.a, aerr=fit_result.aerr, t_start=t_start
     )
-    plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2e}$)")
-    plt.errorbar(x, y, yerr=yerr, label="Data points", linestyle="none")
-    plt.plot(x, np.polyval(fit_result.a, x - t_start), label="Evaluated parabola")
-    if real_a is not None:
-        plt.plot(x, np.polyval(real_a, x - t_start), label="Real parabola")
-    plt.legend()
-    plt.savefig(output_dir / "parabolic_fit.png")
-    plt.clf()
+    plot_fit(
+        x=x,
+        y_true=y,
+        y_pred=np.polyval(fit_result.a, x - t_start),
+        yerr=yerr,
+        title=rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2e}$)",
+        xlabel="Time [sec]",
+        ylabel="Intensity factor",
+        output_file=output_dir / "parabolic_fit.png",
+    )
 
     with open(output_dir / "fit_result.json", mode="w") as fd:
         result_as_dict = fit_result.as_dict()
         result_as_dict.update(microlensing_properties)
         json.dump(result_as_dict, fd, indent=2)
+
+
+def plot_fit(
+    x,
+    y_true,
+    y_pred,
+    yerr,
+    title,
+    xlabel,
+    ylabel,
+    output_file,
+):
+    plt.title(title)
+    plt.errorbar(x, y_true, yerr=yerr, label="Data points", linestyle="none")
+    plt.plot(x, y_pred, label="Evaluated fit")
+    plt.legend()
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig(output_file)
+    plt.clf()
 
 
 def plot_monte_carlo_results(
@@ -98,13 +121,54 @@ def plot_2d_grid(chi2_grid, t0_values, u_min_values, output_path):
     )
     plt.colorbar(heatmap)
     X, Y = np.meshgrid(t0_values, u_min_values)
-    c = plt.contour(X, Y, chi2_grid, colors="yellow", linestyles="dashed")
-    c.clabel(inline=True)
     i, j = np.unravel_index(chi2_grid.argmin(), chi2_grid.shape)
+    best_t0, best_u_min = t0_values[i], u_min_values[j]
+    best_chi2 = chi2_grid[i, j]
+    plt.contour(
+        X,
+        Y,
+        chi2_grid,
+        colors=["green", "yellow", "red"],
+        linestyles="dashed",
+        levels=[best_chi2 + 2.3, best_chi2 + 4.61, best_chi2 + 9.21],
+    )
     plt.plot(
-        [t0_values[i]], [u_min_values[j]], linestyle="none", marker="o", color="yellow"
+        [best_t0],
+        [best_u_min],
+        linestyle="none",
+        marker="o",
+        color="yellow",
+        label="Best approximation",
     )
     plt.xlabel("$t_0$")
     plt.ylabel("$u_{min}$")
+    plt.title(r"Grid search $\chi^2$ map")
+    plt.legend(
+        handles=[
+            Line2D(
+                [0], [0], color="green", lw=1, ls="dashed", label=r"$\Delta\chi^2=2.3$"
+            ),
+            Line2D(
+                [0],
+                [0],
+                color="yellow",
+                lw=1,
+                ls="dashed",
+                label=r"$\Delta\chi^2=4.61$",
+            ),
+            Line2D(
+                [0], [0], color="red", lw=1, ls="dashed", label=r"$\Delta\chi^2=9.21$"
+            ),
+            Line2D(
+                [0],
+                [0],
+                marker="o",
+                color="w",
+                ls="none",
+                markerfacecolor="yellow",
+                label=rf"Best $\chi2={best_chi2:.2f}$",
+            ),
+        ]
+    )
     plt.savefig(output_path)
     plt.clf()
