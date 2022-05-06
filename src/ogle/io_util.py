@@ -13,7 +13,7 @@ def read_data(data_path=None, is_random=False):
     if data_path is None:
         data_path = DEFAULT_DATA_PATH
     df = pd.read_csv(data_path)
-    return None, df["x"].to_numpy(), df["y"].to_numpy()
+    return None, df["x"].to_numpy(), df["y"].to_numpy(), df["y_err"].to_numpy()
 
 
 def search_data_paths(root_path: Path, suffix: str) -> List[Path]:

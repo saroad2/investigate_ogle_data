@@ -27,8 +27,8 @@ def generate_parabolic_data(
     return a, x, y
 
 
-def sample_records(x, y):
+def sample_records(x, y, yerr):
     n = x.shape[0]
     indices = np.random.choice(np.arange(n), size=n)
     indices.sort()
-    return x[indices], y[indices]
+    return x[indices], y[indices], yerr[indices]

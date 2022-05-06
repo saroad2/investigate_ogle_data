@@ -12,6 +12,7 @@ from uncertainties.umath import *  # noqa: F403
 def iterative_grid_search_2d(
     x,
     y,
+    yerr,
     t0_candidate,
     u_min_candidate,
     tau,
@@ -27,7 +28,7 @@ def iterative_grid_search_2d(
     if u_min_step is None:
         u_min_step = u_min_candidate / search_space
     if sample:
-        x, y = sample_records(x, y)
+        x, y, yerr = sample_records(x, y, yerr)
     prev_min_chi2 = None
     index = 1
     while True:

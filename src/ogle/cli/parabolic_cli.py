@@ -11,6 +11,7 @@ from ogle.constants import (
     DEFAULT_DATA_POINTS,
     DEFAULT_EXPERIMENTS,
     DEFAULT_RELATIVE_ERROR,
+    MICROLENSING_PROPERTY_NAMES,
 )
 from ogle.fit_data import fit_parabolic_data
 from ogle.io_util import build_data, read_data, search_data_paths
@@ -82,15 +83,16 @@ def fit_data_cli(data_path, is_random, data_points, monte_carlo, experiments):
     for i, path in enumerate(data_paths, start=1):
         click.echo(f"Fit data for {path} ({i}/{len(data_paths)})")
 
-        real_a, x, y = read_data(data_path=path, is_random=is_random)
+        real_a, x, y, yerr = read_data(data_path=path, is_random=is_random)
         max_index = np.argmax(y)
-        x, y = (
+        x, y, yerr = (
             x[max_index - delta_index : max_index + delta_index],
             y[max_index - delta_index : max_index + delta_index],
+            yerr[max_index - delta_index : max_index + delta_index],
         )
         t_start = x[0]
         click.echo("Fitting parabolic...")
-        fit_result = fit_parabolic_data(x=x - t_start, y=y)
+        fit_result = fit_parabolic_data(x=x - t_start, y=y, yerr=yerr)
         plot_parabolic_fit(
             x=x,
             y=y,
@@ -105,15 +107,19 @@ def fit_data_cli(data_path, is_random, data_points, monte_carlo, experiments):
         click.echo("Running monte Carlo...")
         results = []
         for _ in tqdm.trange(experiments):
-            x_samples, y_samples = sample_records(x, y)
+            x_samples, y_samples, yerr_samples = sample_records(x, y, yerr)
             t_start = x_samples[0]
-            fit_results = fit_parabolic_data(x_samples - t_start, y_samples)
+            fit_results = fit_parabolic_data(
+                x_samples - t_start, y_samples, yerr_samples
+            )
             results.append(
                 extract_microlensing_properties(
                     fit_results.a, fit_results.aerr, t_start=t_start
                 )
             )
         plot_monte_carlo_results(
-            results, output_dir=path.with_name(f"{path.stem}_monte_carlo_results")
+            results,
+            property_names=MICROLENSING_PROPERTY_NAMES,
+            output_dir=path.with_name(f"{path.stem}_monte_carlo_results"),
         )
         click.echo("Done!")

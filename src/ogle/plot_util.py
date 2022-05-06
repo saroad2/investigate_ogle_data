@@ -21,16 +21,7 @@ def plot_parabolic_fit(x, y, fit_result, t_start, output_dir, real_a=None):
 
     with open(output_dir / "fit_result.json", mode="w") as fd:
         result_as_dict = fit_result.as_dict()
-        result_as_dict.update(
-            {
-                key: [
-                    value.nominal_value,
-                    value.std_dev,
-                    value.std_dev / np.fabs(value.nominal_value) * 100,
-                ]
-                for key, value in microlensing_properties.items()
-            }
-        )
+        result_as_dict.update(microlensing_properties)
         json.dump(result_as_dict, fd, indent=2)
 
 
