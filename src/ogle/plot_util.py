@@ -3,6 +3,8 @@ import json
 import numpy as np
 from matplotlib import pyplot as plt
 from ogle.ogle_util import extract_microlensing_properties
+from scipy.integrate import trapz
+from scipy.stats import norm
 
 
 def plot_parabolic_fit(x, y, yerr, fit_result, t_start, output_dir, real_a=None):
@@ -26,7 +28,7 @@ def plot_parabolic_fit(x, y, yerr, fit_result, t_start, output_dir, real_a=None)
 
 
 def plot_monte_carlo_results(
-    results, property_names, output_dir, normal_curve: bool = True
+    results, property_names, output_dir, normal_curve: bool = True, bins: int = 50
 ):
     output_dir.mkdir(exist_ok=True)
     results_dict = {}
@@ -40,23 +42,26 @@ def plot_monte_carlo_results(
     for property_name in property_names:
         a = np.array(results_dict[property_name])
         a.sort()
-        aerr = np.array(results_dict[f"{property_name}_error"])
-        mean_value = np.mean(a)
-        sample_error = np.sqrt(np.sum(aerr**2)) / a.shape[0]
-        stat_error = np.std(a)
-        total_error = np.sqrt(sample_error**2 + stat_error**2)
-        percentage_error = total_error / np.fabs(mean_value) * 100
+        mu, sigma = norm.fit(a)
+        percentage_error = sigma / np.fabs(mu) * 100
         plt.title(
-            f"Values hist for {property_name} - {mean_value:.2e} "
-            rf"$\pm$ {total_error:.2e} "
+            f"Values hist for {property_name} - {mu:.2e} "
+            rf"$\pm$ {sigma:.2e} "
             f"( {percentage_error:.2f}% )"
         )
         plt.xlabel(f"{property_name} values")
         plt.ylabel("Count")
-        plt.hist(a, bins=50)
+        hist_heights, bins_edges, _ = plt.hist(
+            a, bins=bins, label=f"Histogram of {a.shape[0]} samples"
+        )
         if normal_curve:
-            max_hist = np.max(np.histogram(a, bins=50)[0])
-            plt.plot(a, max_hist * np.exp(-(((a - mean_value) / total_error) ** 2)))
+            density = trapz(hist_heights, bins_edges[1:])
+            plt.plot(
+                bins_edges,
+                norm.pdf(bins_edges, mu, sigma) * density,
+                label="Normal distribution fit",
+            )
+        plt.legend()
         plt.savefig(output_dir / f"{property_name}_hist.png")
         plt.clf()
     for i in range(len(property_names) - 1):
