@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 import numpy as np
-import tqdm
+from joblib import Parallel, delayed
 from ogle.cli.ogle_cli import ogle_cli_group
 from ogle.constants import (
     CHI2_EPSILON,
@@ -19,7 +19,6 @@ from ogle.grid_search import (
 )
 from ogle.io_util import read_data
 from ogle.plot_util import plot_2d_grid, plot_monte_carlo_results
-from ogle.random_data import sample_records
 
 
 @ogle_cli_group.group("grid-search")
@@ -96,8 +95,9 @@ def grid_search_2d_cli(data_dir, tau, fbl, search_space, chi2_epsilon):
 @click.option("-e", "--experiments", type=int, default=DEFAULT_EXPERIMENTS)
 @click.option("--normal-curve/--no-normal-curve", is_flag=True, default=True)
 @click.option("--chi2-epsilon", type=float, default=CHI2_EPSILON)
+@click.option("-w", "--workers", type=int, default=1)
 def monte_carlo_2d_cli(
-    data_dir, tau, fbl, search_space, experiments, chi2_epsilon, normal_curve
+    data_dir, tau, fbl, search_space, experiments, chi2_epsilon, normal_curve, workers
 ):
     data_path = data_dir / f"{DATA_FILE_NAME}.csv"
     _, x, y = read_data(data_path=data_path, is_random=False)
@@ -107,21 +107,20 @@ def monte_carlo_2d_cli(
         results_json = json.load(fd)
     t0_candidate = results_json["t0"][0]
     u_min_candidate = results_json["u_min"][0]
-    results = []
-    for _ in tqdm.trange(experiments):
-        x_samples, y_samples = sample_records(x, y)
-        results.append(
-            iterative_grid_search_2d(
-                x=x_samples,
-                y=y_samples,
-                t0_candidate=t0_candidate,
-                u_min_candidate=u_min_candidate,
-                tau=tau,
-                f_bl=fbl,
-                search_space=search_space,
-                chi2_epsilon=chi2_epsilon,
-            )
+    results = Parallel(n_jobs=workers, verbose=5)(
+        delayed(iterative_grid_search_2d)(
+            x=x,
+            y=y,
+            t0_candidate=t0_candidate,
+            u_min_candidate=u_min_candidate,
+            tau=tau,
+            f_bl=fbl,
+            search_space=search_space,
+            chi2_epsilon=chi2_epsilon,
+            sample=True,
         )
+        for _ in range(experiments)
+    )
     plot_monte_carlo_results(
         results,
         property_names=MICROLENSING_PROPERTY_NAMES + ["iterations"],

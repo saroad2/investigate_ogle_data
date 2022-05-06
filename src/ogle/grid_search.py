@@ -4,6 +4,7 @@ import numpy as np
 from ogle.constants import CHI2_EPSILON
 from ogle.fit_data import calculate_chi2
 from ogle.ogle_util import calculate_intensity
+from ogle.random_data import sample_records
 from uncertainties import ufloat
 from uncertainties.umath import *  # noqa: F403
 
@@ -19,11 +20,14 @@ def iterative_grid_search_2d(
     chi2_epsilon: float = CHI2_EPSILON,
     t0_step: Optional[float] = None,
     u_min_step: Optional[float] = None,
+    sample: bool = False,
 ):
     if t0_step is None:
         t0_step = t0_candidate / search_space
     if u_min_step is None:
         u_min_step = u_min_candidate / search_space
+    if sample:
+        x, y = sample_records(x, y)
     prev_min_chi2 = None
     index = 1
     while True:
