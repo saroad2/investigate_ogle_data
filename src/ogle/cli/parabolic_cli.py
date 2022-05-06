@@ -96,6 +96,7 @@ def fit_data_cli(data_path, is_random, data_points, monte_carlo, experiments):
         plot_parabolic_fit(
             x=x,
             y=y,
+            yerr=yerr,
             fit_result=fit_result,
             t_start=t_start,
             output_dir=path.with_name(f"{path.stem}_fitting_results"),

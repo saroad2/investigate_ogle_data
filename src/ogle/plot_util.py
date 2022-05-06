@@ -5,13 +5,13 @@ from matplotlib import pyplot as plt
 from ogle.ogle_util import extract_microlensing_properties
 
 
-def plot_parabolic_fit(x, y, fit_result, t_start, output_dir, real_a=None):
+def plot_parabolic_fit(x, y, yerr, fit_result, t_start, output_dir, real_a=None):
     output_dir.mkdir(exist_ok=True)
     microlensing_properties = extract_microlensing_properties(
         a=fit_result.a, aerr=fit_result.aerr, t_start=t_start
     )
     plt.title(rf"Parabolic fit ($\chi^2_{{red}} = {fit_result.chi2_reduced:.2e}$)")
-    plt.scatter(x, y, label="Data points")
+    plt.errorbar(x, y, yerr=yerr, label="Data points", linestyle="none")
     plt.plot(x, np.polyval(fit_result.a, x - t_start), label="Evaluated parabola")
     if real_a is not None:
         plt.plot(x, np.polyval(real_a, x - t_start), label="Real parabola")
