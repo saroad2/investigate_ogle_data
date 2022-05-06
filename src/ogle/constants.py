@@ -11,4 +11,4 @@ MIN_X, MAX_X = 0, 10
 MIN_ARG, MAX_ARG = -5, 5
 CHI2_EPSILON = 1e-5
 
-MICROLENSING_PROPERTY_NAMES = ["t0", "f_max", "u_min"]
+MICROLENSING_PROPERTY_NAMES = ["t0", "f_max", "u_min", "tau"]
