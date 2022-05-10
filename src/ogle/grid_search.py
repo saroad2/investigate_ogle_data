@@ -1,5 +1,4 @@
 import itertools
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -13,60 +12,80 @@ def create_search_list(candidate, step, search_space):
     return [candidate + n * step for n in range(-search_space // 2, search_space // 2)]
 
 
-def iterative_grid_search_2d(
+def iterative_grid_search(
     x,
     y,
     yerr,
-    t0_candidate,
-    u_min_candidate,
-    tau,
-    f_bl,
+    constants_dict,
+    candidates_dict,
+    steps_dict,
     search_space,
     chi2_epsilon: float = CHI2_EPSILON,
-    t0_step: Optional[float] = None,
-    u_min_step: Optional[float] = None,
     sample: bool = False,
+    verbose: bool = False,
+    history: bool = True,
 ):
-    if t0_step is None:
-        t0_step = t0_candidate / search_space
-    if u_min_step is None:
-        u_min_step = u_min_candidate / search_space
+    for key, value in candidates_dict.items():
+        if key not in steps_dict:
+            steps_dict[key] = value / search_space
     if sample:
         x, y, yerr = sample_records(x, y, yerr)
     prev_min_chi2 = None
     index = 1
+    parameters = list(candidates_dict.keys())
+    chi2_grid_tables_history = []
     while True:
-        t0_values = [
-            t0_candidate + n * t0_step
-            for n in range(-search_space // 2, search_space // 2)
-        ]
-        u_min_values = [
-            u_min_candidate + n * u_min_step
-            for n in range(-search_space // 2, search_space // 2)
-        ]
-        chi2_grid_table = grid_search(
-            x, y, yerr, t0=t0_values, u_min=u_min_values, tau=[tau], f_bl=[f_bl]
+        if verbose:
+            print(f"Grid search {index}")
+        values_dict = {key: [value] for key, value in constants_dict.items()}
+        values_dict.update(
+            {
+                key: create_search_list(value, steps_dict[key], search_space)
+                for key, value in candidates_dict.items()
+            }
         )
+        chi2_grid_table = grid_search(x, y, yerr, **values_dict)
+        chi2_grid_tables_history.append(chi2_grid_table)
         best_approximation = extract_grid_search_best_approximation(chi2_grid_table)
-        best_chi2 = best_approximation["chi2"]
-        results = dict(best_approximation)
-        results.update(
-            calculate_errors_dict(
-                chi2_grid_table, best_approximation, best_chi2=best_chi2
-            )
-        )
-        t0_candidate, u_min_candidate = (results["t0"], results["u_min"])
+        best_chi2 = best_approximation.pop("chi2")
+        candidates_dict = {
+            key: value
+            for key, value in best_approximation.items()
+            if key not in constants_dict
+        }
+        if verbose:
+            print(f"Min chi2: {best_chi2:.2e}")
         if (
             prev_min_chi2 is not None
             and np.fabs(prev_min_chi2 - best_chi2) / prev_min_chi2  # noqa: W503
             < chi2_epsilon  # noqa: W503
         ):
-            results["iterations"] = index
-            results["iterations_error"] = 0
-            return results
+            break
         prev_min_chi2 = best_chi2
-        t0_step, u_min_step = t0_step / 2, u_min_step / 2
+        steps_dict = {key: value / 2 for key, value in steps_dict.items()}
         index += 1
+    if history:
+        return chi2_grid_tables_history
+    last_grid_table = chi2_grid_tables_history[-1]
+    return build_results_dict(
+        chi2_grid_table=last_grid_table, parameters=parameters, index=index
+    )
+
+
+def build_results_dict(chi2_grid_table, parameters, index):
+    best_approximation = extract_grid_search_best_approximation(chi2_grid_table)
+    best_chi2 = best_approximation.pop("chi2")
+    results = dict(best_approximation)
+    results.update(
+        calculate_errors_dict(
+            chi2_grid_table,
+            best_approximation,
+            best_chi2=best_chi2,
+            parameters=parameters,
+        )
+    )
+    results["iteration"] = index
+    return results
 
 
 def grid_search(x, y, yerr, **kwargs):
@@ -130,9 +149,9 @@ def build_grid_matrix(chi2_grid_table, best_approximation, parameter1, parameter
     return grid
 
 
-def calculate_errors_dict(chi2_grid_table, best_approximation, best_chi2):
+def calculate_errors_dict(chi2_grid_table, best_approximation, best_chi2, parameters):
     errors_dict = {}
-    for parameter in best_approximation.keys():
+    for parameter in parameters:
         filter_dict = dict(best_approximation)
         del filter_dict[parameter]
         filtered_table = chi2_grid_table.loc[
@@ -153,9 +172,18 @@ def calculate_errors_dict(chi2_grid_table, best_approximation, best_chi2):
 def get_error(values, chi2, best_chi2, best_parameter):
     filtered_values = values[np.fabs(chi2 - best_chi2) > 1]
     if filtered_values.shape[0] == 0:
-        return None
+        return np.inf
     big_values = filtered_values[filtered_values > best_parameter]
     max_value = np.min(big_values) if big_values.shape[0] > 0 else np.max(values)
     small_values = filtered_values[filtered_values < best_parameter]
     min_value = np.max(small_values) if small_values.shape[0] > 0 else np.min(values)
     return (max_value - min_value) / 2
+
+
+def build_values_dict(chi2_grid_table, parameters):
+    values_dict = {}
+    for parameter in parameters:
+        values = list(chi2_grid_table[parameter].unique())
+        values.sort()
+        values_dict[parameter] = values
+    return values_dict

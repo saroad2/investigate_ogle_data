@@ -1,10 +1,17 @@
+import itertools
 import json
 
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.ticker import FormatStrFormatter
-from ogle.ogle_util import extract_microlensing_properties
+from ogle.grid_search import (
+    build_grid_matrix,
+    build_results_dict,
+    build_values_dict,
+    extract_grid_search_best_approximation,
+)
+from ogle.ogle_util import calculate_intensity, extract_microlensing_properties
 from scipy.integrate import trapz
 from scipy.stats import norm
 
@@ -183,3 +190,51 @@ def plot_grid(
     )
     plt.savefig(output_path)
     plt.clf()
+
+
+def plot_grid_search_results(
+    x,
+    y,
+    yerr,
+    chi2_grid_table,
+    parameters,
+    output_dir,
+    index,
+):
+    best_approximation = extract_grid_search_best_approximation(chi2_grid_table)
+    best_chi2 = best_approximation.pop("chi2")
+    values_dict = build_values_dict(
+        chi2_grid_table=chi2_grid_table, parameters=parameters
+    )
+    for parameter1, parameter2 in itertools.combinations(parameters, 2):
+        chi2_grid = build_grid_matrix(
+            chi2_grid_table, best_approximation, parameter1, parameter2
+        )
+        plot_grid(
+            chi2_grid=chi2_grid,
+            x_values=values_dict[parameter1],
+            y_values=values_dict[parameter2],
+            x_parameter=parameter1,
+            y_parameter=parameter2,
+            output_path=(
+                output_dir / f"grid_search_{parameter1}_{parameter2}{index}.png"
+            ),
+        )
+    with open(output_dir / f"grid_search{index}_results.json", mode="w") as fd:
+        json.dump(
+            build_results_dict(
+                chi2_grid_table=chi2_grid_table, parameters=parameters, index=index
+            ),
+            fd,
+            indent=2,
+        )
+    plot_fit(
+        x=x,
+        y_true=y,
+        y_pred=calculate_intensity(t=x, **best_approximation),
+        yerr=yerr,
+        title=rf"Grid search fit ($\chi^2_{{red}} = {best_chi2:.2e}$)",
+        xlabel="Time [sec]",
+        ylabel="Intensity factor",
+        output_file=output_dir / f"grid_search_fit{index}.png",
+    )
