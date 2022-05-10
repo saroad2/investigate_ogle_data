@@ -14,7 +14,7 @@ from ogle.constants import (
     MICROLENSING_PROPERTY_NAMES,
 )
 from ogle.fit_data import fit_parabolic_data
-from ogle.io_util import build_data, read_data, search_data_paths
+from ogle.io_util import read_data, search_data_paths
 from ogle.ogle_util import extract_microlensing_properties
 from ogle.plot_util import plot_monte_carlo_results, plot_parabolic_fit
 from ogle.random_data import generate_parabolic_data, sample_records
@@ -23,24 +23,6 @@ from ogle.random_data import generate_parabolic_data, sample_records
 @ogle_cli_group.group("parabolic")
 def parabolic_cli_group():
     """Parabolic fitting related commands"""
-
-
-@parabolic_cli_group.command("build-parabolic-data")
-@click.argument("data_path", type=click.Path(path_type=Path, exists=True))
-@click.option("--show/--no-show", is_flag=True, default=False)
-def build_parabolic(data_path, show):
-    data_paths = search_data_paths(data_path, suffix="dat")
-    for i, path in enumerate(data_paths, start=1):
-        click.echo(f"Build data for {path} ({i}/{len(data_paths)})")
-        x, y, y_err = build_data(path)
-        if show:
-            plt.errorbar(x, y, yerr=y_err, linestyle="none")
-            plt.show()
-            plt.clf()
-        output_path = path.with_name(f"{path.stem}.csv")
-        pd.DataFrame(dict(x=x, y=y, y_err=y_err)).to_csv(
-            output_path, index=False, header=True
-        )
 
 
 @parabolic_cli_group.command("generate-parabolic-data")
@@ -100,7 +82,6 @@ def fit_data_cli(data_path, is_random, data_points, monte_carlo, experiments):
             fit_result=fit_result,
             t_start=t_start,
             output_dir=path.with_name(f"{path.stem}_fitting_results"),
-            real_a=real_a,
         )
         click.echo("Done!")
         if not monte_carlo:

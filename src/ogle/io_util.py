@@ -12,8 +12,12 @@ def read_data(data_path=None, is_random=False):
         return generate_parabolic_data()
     if data_path is None:
         data_path = DEFAULT_DATA_PATH
+    return None, *read_data_from_path(data_path)
+
+
+def read_data_from_path(data_path: Path):
     df = pd.read_csv(data_path)
-    return None, df["x"].to_numpy(), df["y"].to_numpy(), df["y_err"].to_numpy()
+    return df["x"].to_numpy(), df["y"].to_numpy(), df["y_err"].to_numpy()
 
 
 def search_data_paths(root_path: Path, suffix: str) -> List[Path]:
@@ -36,5 +40,5 @@ def build_data(data_path: Path):
     x, m, m_err = np.array(x), np.array(m), np.array(m_err)
     x -= x[0]
     y = np.power(10, (m[0] - m) / 2.5)
-    y_err = (np.log(10) * y * m_err / 2.5) ** 2
+    y_err = np.log(10) * y * m_err / 2.5
     return x, y, y_err
