@@ -9,6 +9,10 @@ from ogle.ogle_util import calculate_intensity
 from ogle.random_data import sample_records
 
 
+def create_search_list(candidate, step, search_space):
+    return [candidate + n * step for n in range(-search_space // 2, search_space // 2)]
+
+
 def iterative_grid_search_2d(
     x,
     y,
@@ -150,6 +154,8 @@ def get_error(values, chi2, best_chi2, best_parameter):
     filtered_values = values[np.fabs(chi2 - best_chi2) > 1]
     if filtered_values.shape[0] == 0:
         return None
-    max_value = np.min(filtered_values[filtered_values > best_parameter])
-    min_value = np.max(filtered_values[filtered_values < best_parameter])
+    big_values = filtered_values[filtered_values > best_parameter]
+    max_value = np.min(big_values) if big_values.shape[0] > 0 else np.max(values)
+    small_values = filtered_values[filtered_values < best_parameter]
+    min_value = np.max(small_values) if small_values.shape[0] > 0 else np.min(values)
     return (max_value - min_value) / 2

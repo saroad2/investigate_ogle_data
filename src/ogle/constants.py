@@ -11,5 +11,6 @@ MIN_X, MAX_X = 0, 10
 MIN_ARG, MAX_ARG = -5, 5
 CHI2_EPSILON = 1e-5
 
-GRID_SEARCH_2D_NAMES = ["t0", "u_min", "iterations"]
+GRID_SEARCH_4D_NAMES = ["t0", "u_min", "tau", "f_bl"]
+GRID_SEARCH_2D_NAMES = ["t0", "u_min"]
 MICROLENSING_PROPERTY_NAMES = ["t0", "f_max", "u_min", "tau"]

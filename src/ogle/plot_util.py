@@ -8,6 +8,8 @@ from ogle.ogle_util import extract_microlensing_properties
 from scipy.integrate import trapz
 from scipy.stats import norm
 
+PARAMETER_TO_LATEX = {"t0": "t_0", "u_min": "u_{min}", "f_bl": "f_{bl}", "tau": r"\tau"}
+
 
 def plot_parabolic_fit(x, y, yerr, fit_result, t_start, output_dir):
     output_dir.mkdir(exist_ok=True)
@@ -111,7 +113,14 @@ def plot_monte_carlo_results(
             plt.clf()
 
 
-def plot_2d_grid(chi2_grid, t0_values, u_min_values, output_path):
+def plot_grid(
+    chi2_grid,
+    t0_values,
+    u_min_values,
+    output_path,
+    x_parameter,
+    y_parameter,
+):
     x_min, x_max, y_min, y_max = (
         t0_values[0],
         t0_values[-1],
@@ -142,8 +151,8 @@ def plot_2d_grid(chi2_grid, t0_values, u_min_values, output_path):
         color="yellow",
         label="Best approximation",
     )
-    plt.xlabel("$t_0$")
-    plt.ylabel("$u_{min}$")
+    plt.xlabel(f"${PARAMETER_TO_LATEX[x_parameter]}$")
+    plt.ylabel(f"${PARAMETER_TO_LATEX[y_parameter]}$")
     plt.title(r"Grid search $\chi^2$ map")
     plt.legend(
         handles=[
