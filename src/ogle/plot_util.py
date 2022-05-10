@@ -61,29 +61,26 @@ def plot_fit(
 
 
 def plot_monte_carlo_results(
-    results, property_names, output_dir, normal_curve: bool = True, bins: int = 50
+    results, parameters, output_dir, normal_curve: bool = True, bins: int = 50
 ):
     output_dir.mkdir(exist_ok=True)
     results_dict = {}
-    for property_name in property_names:
-        results_dict[property_name] = [result[property_name] for result in results]
-        results_dict[f"{property_name}_error"] = [
-            result[f"{property_name}_error"] for result in results
-        ]
+    for parameter in parameters:
+        results_dict[parameter] = [result[parameter] for result in results]
     with open(output_dir / "results.json", mode="w") as fd:
         json.dump(results_dict, fd, indent=2)
-    for property_name in property_names:
-        a = np.array(results_dict[property_name])
+    for parameter in parameters:
+        a = np.array(results_dict[parameter])
         a.sort()
         mu, sigma = norm.fit(a)
         percentage_error = sigma / np.fabs(mu) * 100
         plt.title(
-            f"Values histogram for {property_name} - {mu:.2e} "
+            f"Values histogram for {parameter} - {mu:.2e} "
             rf"$\pm$ {sigma:.2e} "
             f"( {percentage_error:.2f}% )"
         )
         plt.gca().xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
-        plt.xlabel(f"{property_name} values")
+        plt.xlabel(f"{parameter} values")
         plt.ylabel("Count")
         hist_heights, bins_edges, _ = plt.hist(
             a, bins=bins, label=f"Histogram of {a.shape[0]} samples"
@@ -96,13 +93,13 @@ def plot_monte_carlo_results(
                 label="Normal distribution fit",
             )
         plt.legend()
-        plt.savefig(output_dir / f"{property_name}_hist.png")
+        plt.savefig(output_dir / f"{parameter}_hist.png")
         plt.clf()
-    for i in range(len(property_names) - 1):
-        for j in range(i + 1, len(property_names)):
+    for i in range(len(parameters) - 1):
+        for j in range(i + 1, len(parameters)):
             property_name1, property_name2 = (
-                property_names[i],
-                property_names[j],
+                parameters[i],
+                parameters[j],
             )
             x = np.array([result[property_name1] for result in results])
             y = np.array([result[property_name2] for result in results])

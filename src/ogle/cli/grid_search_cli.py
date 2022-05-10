@@ -102,7 +102,7 @@ def monte_carlo_2d_cli(
     )
     plot_monte_carlo_results(
         results,
-        property_names=GRID_SEARCH_2D_NAMES + ["iterations"],
+        parameters=GRID_SEARCH_2D_NAMES + ["iterations"],
         output_dir=data_dir / "grid_search_2d_monte_carlo_results",
         normal_curve=normal_curve,
     )

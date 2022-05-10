@@ -101,7 +101,7 @@ def fit_data_cli(data_path, is_random, data_points, monte_carlo, experiments):
             )
         plot_monte_carlo_results(
             results,
-            property_names=MICROLENSING_PROPERTY_NAMES,
+            parameters=MICROLENSING_PROPERTY_NAMES,
             output_dir=path.with_name(f"{path.stem}_monte_carlo_results"),
         )
         click.echo("Done!")
