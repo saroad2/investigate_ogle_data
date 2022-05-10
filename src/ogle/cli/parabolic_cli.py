@@ -89,7 +89,7 @@ def fit_data_cli(
             yerr=yerr,
             fit_result=fit_result,
             t_start=t_start,
-            output_dir=path.with_name(f"{path.stem}_fitting_results"),
+            output_dir=path.with_name("parabolic_fitting_results"),
         )
         click.echo("Done!")
         if not monte_carlo:
@@ -110,6 +110,6 @@ def fit_data_cli(
         plot_monte_carlo_results(
             results,
             parameters=MICROLENSING_PROPERTY_NAMES,
-            output_dir=path.with_name(f"{path.stem}_monte_carlo_results"),
+            output_dir=path.with_name("parabolic_monte_carlo_results"),
         )
         click.echo("Done!")
