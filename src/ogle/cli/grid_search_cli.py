@@ -22,17 +22,17 @@ def grid_search_cli_group():
 
 
 @grid_search_cli_group.command("2d-search")
-@click.argument(
-    "data_dir", type=click.Path(exists=True, file_okay=False, path_type=Path)
-)
+@click.argument("data_path", type=click.Path(exists=True, path_type=Path))
 @click.option("--tau", type=float, required=True)
 @click.option("--fbl", type=float, default=1)
 @click.option("--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
 @click.option("--chi2-epsilon", type=float, default=CHI2_EPSILON)
-def grid_search_2d_cli(data_dir, tau, fbl, search_space, chi2_epsilon):
-    data_path = data_dir / f"{DATA_FILE_NAME}.csv"
+def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon):
+    if data_path.is_dir():
+        data_path = data_path / f"{DATA_FILE_NAME}.csv"
+    data_dir = data_path.parent
     _, x, y, yerr = read_data(data_path=data_path, is_random=False)
-    with (data_dir / f"{DATA_FILE_NAME}_fitting_results" / "fit_Result.json").open(
+    with (data_dir / "parabolic_fitting_results" / "fit_rsult.json").open(
         mode="r"
     ) as fd:
         results_json = json.load(fd)
@@ -64,9 +64,7 @@ def grid_search_2d_cli(data_dir, tau, fbl, search_space, chi2_epsilon):
 
 
 @grid_search_cli_group.command("2d-monte-carlo")
-@click.argument(
-    "data_dir", type=click.Path(exists=True, file_okay=False, path_type=Path)
-)
+@click.argument("data_path", type=click.Path(exists=True, path_type=Path))
 @click.option("--tau", type=float, required=True)
 @click.option("--fbl", type=float, default=1)
 @click.option("--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
@@ -75,11 +73,13 @@ def grid_search_2d_cli(data_dir, tau, fbl, search_space, chi2_epsilon):
 @click.option("--chi2-epsilon", type=float, default=CHI2_EPSILON)
 @click.option("-w", "--workers", type=int, default=1)
 def monte_carlo_2d_cli(
-    data_dir, tau, fbl, search_space, experiments, chi2_epsilon, normal_curve, workers
+    data_path, tau, fbl, search_space, experiments, chi2_epsilon, normal_curve, workers
 ):
-    data_path = data_dir / f"{DATA_FILE_NAME}.csv"
+    if data_path.is_dir():
+        data_path = data_path / f"{DATA_FILE_NAME}.csv"
+    data_dir = data_path.parent
     _, x, y, yerr = read_data(data_path=data_path, is_random=False)
-    with (data_dir / f"{DATA_FILE_NAME}_fitting_results" / "fit_Result.json").open(
+    with (data_dir / "parabolic_fitting_results" / "fit_Result.json").open(
         mode="r"
     ) as fd:
         results_json = json.load(fd)
@@ -109,15 +109,15 @@ def monte_carlo_2d_cli(
 
 
 @grid_search_cli_group.command("4d-search")
-@click.argument(
-    "data_dir", type=click.Path(exists=True, file_okay=False, path_type=Path)
-)
+@click.argument("data_path", type=click.Path(exists=True, path_type=Path))
 @click.option("-s", "--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
 @click.option("-c", "--chi2-epsilon", type=float, default=CHI2_EPSILON)
-def grid_search_4d_cli(data_dir, search_space, chi2_epsilon):
-    data_path = data_dir / f"{DATA_FILE_NAME}.csv"
+def grid_search_4d_cli(data_path, search_space, chi2_epsilon):
+    if data_path.is_dir():
+        data_path = data_path / f"{DATA_FILE_NAME}.csv"
+    data_dir = data_path.parent
     _, x, y, yerr = read_data(data_path=data_path, is_random=False)
-    with (data_dir / f"{DATA_FILE_NAME}_fitting_results" / "fit_Result.json").open(
+    with (data_dir / "parabolic_fitting_results" / "fit_Result.json").open(
         mode="r"
     ) as fd:
         results_json = json.load(fd)
