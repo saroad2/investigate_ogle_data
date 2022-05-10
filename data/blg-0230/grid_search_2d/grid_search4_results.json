@@ -1,11 +1,9 @@
 {
-  "t0": 425.9784284858111,
-  "u_min": 0.1053628665166248,
   "tau": 55.778,
   "f_bl": 1.0,
-  "t0_error": null,
-  "u_min_error": null,
-  "tau_error": null,
-  "f_bl_error": null,
-  "chi2": 2.9931610350093036
+  "t0": 425.9784284858111,
+  "u_min": 0.1053628665166248,
+  "t0_error": Infinity,
+  "u_min_error": Infinity,
+  "iteration": 4
 }
