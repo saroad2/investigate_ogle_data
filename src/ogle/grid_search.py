@@ -113,9 +113,13 @@ def grid_search(x, y, yerr, **kwargs):
 
 
 def extract_grid_search_best_approximation(chi2_grid_table):
-    return chi2_grid_table[
-        chi2_grid_table["chi2"] == chi2_grid_table["chi2"].min()
-    ].to_dict("records")[0]
+    best_chi2 = chi2_grid_table["chi2"].min()
+    min_chi2_records = chi2_grid_table.loc[
+        chi2_grid_table["chi2"] == best_chi2
+    ].to_dict("records")
+    if len(min_chi2_records) == 1:
+        return min_chi2_records[0]
+    return None
 
 
 def build_grid_matrix(chi2_grid_table, best_approximation, parameter1, parameter2):

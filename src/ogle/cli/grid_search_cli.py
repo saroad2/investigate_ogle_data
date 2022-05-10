@@ -33,7 +33,7 @@ def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon):
         data_path = data_path / f"{DATA_FILE_NAME}.csv"
     data_dir = data_path.parent
     _, x, y, yerr = read_data(data_path=data_path, is_random=False)
-    with (data_dir / "parabolic_fitting_results" / "fit_rsult.json").open(
+    with (data_dir / "parabolic_fitting_results" / "fit_result.json").open(
         mode="r"
     ) as fd:
         results_json = json.load(fd)
