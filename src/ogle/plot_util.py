@@ -115,25 +115,25 @@ def plot_monte_carlo_results(
 
 def plot_grid(
     chi2_grid,
-    t0_values,
-    u_min_values,
+    x_values,
+    y_values,
     output_path,
     x_parameter,
     y_parameter,
 ):
     x_min, x_max, y_min, y_max = (
-        t0_values[0],
-        t0_values[-1],
-        u_min_values[0],
-        u_min_values[-1],
+        x_values[0],
+        x_values[-1],
+        y_values[0],
+        y_values[-1],
     )
     heatmap = plt.imshow(
         chi2_grid, origin="lower", extent=[x_min, x_max, y_min, y_max], aspect="auto"
     )
     plt.colorbar(heatmap)
-    X, Y = np.meshgrid(t0_values, u_min_values)
+    X, Y = np.meshgrid(x_values, y_values)
     i, j = np.unravel_index(chi2_grid.argmin(), chi2_grid.shape)
-    best_t0, best_u_min = t0_values[i], u_min_values[j]
+    best_t0, best_u_min = x_values[i], y_values[j]
     best_chi2 = chi2_grid[i, j]
     plt.contour(
         X,

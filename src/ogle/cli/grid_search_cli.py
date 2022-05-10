@@ -69,8 +69,8 @@ def grid_search_2d_cli(data_dir, tau, fbl, search_space, chi2_epsilon):
         output_dir.mkdir(exist_ok=True)
         plot_grid(
             chi2_grid=chi2_grid,
-            t0_values=t0_values,
-            u_min_values=u_min_values,
+            x_values=t0_values,
+            y_values=u_min_values,
             x_parameter="t0",
             y_parameter="u_min",
             output_path=output_dir / f"grid_search{index}.png",
@@ -156,8 +156,8 @@ def monte_carlo_2d_cli(
 @click.argument(
     "data_dir", type=click.Path(exists=True, file_okay=False, path_type=Path)
 )
-@click.option("--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
-@click.option("--chi2-epsilon", type=float, default=CHI2_EPSILON)
+@click.option("-s", "--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
+@click.option("-c", "--chi2-epsilon", type=float, default=CHI2_EPSILON)
 def grid_search_4d_cli(data_dir, search_space, chi2_epsilon):
     data_path = data_dir / f"{DATA_FILE_NAME}.csv"
     _, x, y, yerr = read_data(data_path=data_path, is_random=False)
@@ -175,19 +175,18 @@ def grid_search_4d_cli(data_dir, search_space, chi2_epsilon):
     output_dir.mkdir(exist_ok=True)
     while True:
         click.echo(f"Grid search {index}")
-        t0_values = create_search_list(t0_candidate, t0_step, search_space)
-        u_min_values = create_search_list(u_min_candidate, u_min_step, search_space)
-        tau_values = create_search_list(tau_candidate, tau_step, search_space)
-        fbl_values = create_search_list(fbl_candidate, fbl_step, search_space)
+        values_dict = dict(
+            t0=create_search_list(t0_candidate, t0_step, search_space),
+            u_min=create_search_list(u_min_candidate, u_min_step, search_space),
+            tau=create_search_list(tau_candidate, tau_step, search_space),
+            f_bl=create_search_list(fbl_candidate, fbl_step, search_space),
+        )
         click.echo("Searching...")
         chi2_grid_table = grid_search(
             x=x,
             y=y,
             yerr=yerr,
-            t0=t0_values,
-            u_min=u_min_values,
-            tau=tau_values,
-            f_bl=fbl_values,
+            **values_dict,
         )
         click.echo("Found! saving results...")
         best_approximation = extract_grid_search_best_approximation(
@@ -201,8 +200,8 @@ def grid_search_4d_cli(data_dir, search_space, chi2_epsilon):
             )
             plot_grid(
                 chi2_grid=chi2_grid,
-                t0_values=t0_values,
-                u_min_values=u_min_values,
+                x_values=values_dict[parameter1],
+                y_values=values_dict[parameter2],
                 x_parameter=parameter1,
                 y_parameter=parameter2,
                 output_path=(
