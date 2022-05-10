@@ -198,6 +198,9 @@ def plot_grid_search_results(
     output_dir,
     index,
 ):
+    chi2_grid_table.to_csv(
+        output_dir / f"grid_search_table{index}.csv", index=False, header=True
+    )
     best_approximation = extract_grid_search_best_approximation(chi2_grid_table)
     best_chi2 = best_approximation.pop("chi2")
     values_dict = build_values_dict(
