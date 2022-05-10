@@ -84,7 +84,7 @@ def build_results_dict(chi2_grid_table, parameters, index):
             parameters=parameters,
         )
     )
-    results["iteration"] = index
+    results["iterations"] = index
     return results
 
 
