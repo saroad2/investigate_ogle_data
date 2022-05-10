@@ -53,14 +53,8 @@ def grid_search_2d_cli(data_dir, tau, fbl, search_space, chi2_epsilon):
     prev_min_chi2 = None
     while True:
         click.echo(f"Grid search {index}")
-        t0_values = [
-            t0_candidate + n * t0_step
-            for n in range(-search_space // 2, search_space // 2)
-        ]
-        u_min_values = [
-            u_min_candidate + n * u_min_step
-            for n in range(-search_space // 2, search_space // 2)
-        ]
+        t0_values = create_search_list(t0_candidate, t0_step, search_space)
+        u_min_values = create_search_list(u_min_candidate, u_min_step, search_space)
         chi2_grid_table = grid_search(
             x=x, y=y, yerr=yerr, t0=t0_values, u_min=u_min_values, tau=[tau], f_bl=[fbl]
         )
