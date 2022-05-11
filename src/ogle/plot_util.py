@@ -15,7 +15,17 @@ from ogle.ogle_util import calculate_intensity, extract_microlensing_properties
 from scipy.integrate import trapz
 from scipy.stats import norm
 
-PARAMETER_TO_LATEX = {"t0": "t_0", "u_min": "u_{min}", "f_bl": "f_{bl}", "tau": r"\tau"}
+PARAMETER_TO_LATEX = {
+    "t0": "t_0",
+    "u_min": "u_{min}",
+    "f_bl": "f_{bl}",
+    "tau": r"\tau",
+    "f_max": r"f_{max}",
+}
+PARAMETER_TO_UNITS = {
+    "t0": "HJD",
+    "tau": "HJD",
+}
 
 
 def plot_parabolic_fit(x, y, yerr, fit_result, t_start, output_dir):
@@ -80,7 +90,7 @@ def plot_monte_carlo_results(
             f"( {percentage_error:.2f}% )"
         )
         plt.gca().xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
-        plt.xlabel(f"{parameter} values")
+        plt.xlabel(f"${PARAMETER_TO_LATEX[parameter]}$")
         plt.ylabel("Count")
         hist_heights, bins_edges, _ = plt.hist(
             a, bins=bins, label=f"Histogram of {a.shape[0]} samples"
@@ -109,8 +119,8 @@ def plot_monte_carlo_results(
                 f"- {covariance:.2e}"
             )
             plt.scatter(x, y)
-            plt.xlabel(property_name1)
-            plt.ylabel(property_name2)
+            plt.xlabel(f"${PARAMETER_TO_LATEX[property_name1]}$")
+            plt.ylabel(f"${PARAMETER_TO_LATEX[property_name2]}$")
             plt.savefig(
                 output_dir / f"{property_name1}_{property_name2}_correlation.png"
             )
@@ -238,3 +248,10 @@ def plot_grid_search_results(
         ylabel="Intensity factor",
         output_file=output_dir / f"grid_search_fit{index}.png",
     )
+
+
+def create_label(parameter):
+    label = f"${PARAMETER_TO_LATEX[parameter]}$"
+    if parameter in PARAMETER_TO_UNITS:
+        label += f" [{PARAMETER_TO_UNITS[parameter]}]"
+    return label
