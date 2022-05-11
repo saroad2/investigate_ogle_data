@@ -23,10 +23,12 @@ def extract_microlensing_properties(a, aerr, t_start):
         ufloat(a[1], aerr[1]),
         ufloat(a[2], aerr[2]),
     )
-    t0 = t_start - a2 / (2 * a1)
+    t0_rel = -a2 / (2 * a1)
+    t0 = t_start + t0_rel
     f_max = a3 - (a2**2) / (4 * a1)
     u_min = sqrt(2 * (f_max / sqrt(f_max**2 - 1) - 1))  # noqa: F405
-    tau = pow(f_max**2 - 1, 3 / 4) / sqrt(-2 * a1)  # noqa: F405
+    u1 = sqrt(2 * (a3 / sqrt(a3**2 - 1) - 1))  # noqa: F405
+    tau = t0_rel / sqrt(u1**2 - u_min**2)  # noqa: F405
     return dict(
         t0=t0.nominal_value,
         t0_error=t0.std_dev,
