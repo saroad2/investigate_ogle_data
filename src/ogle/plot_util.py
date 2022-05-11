@@ -90,7 +90,7 @@ def plot_monte_carlo_results(
             f"( {percentage_error:.2f}% )"
         )
         plt.gca().xaxis.set_major_formatter(FormatStrFormatter("%.2f"))
-        plt.xlabel(f"${PARAMETER_TO_LATEX[parameter]}$")
+        plt.xlabel(create_label(parameter))
         plt.ylabel("Count")
         hist_heights, bins_edges, _ = plt.hist(
             a, bins=bins, label=f"Histogram of {a.shape[0]} samples"
@@ -119,8 +119,8 @@ def plot_monte_carlo_results(
                 f"- {covariance:.2e}"
             )
             plt.scatter(x, y)
-            plt.xlabel(f"${PARAMETER_TO_LATEX[property_name1]}$")
-            plt.ylabel(f"${PARAMETER_TO_LATEX[property_name2]}$")
+            plt.xlabel(create_label(property_name1))
+            plt.ylabel(create_label(property_name2))
             plt.savefig(
                 output_dir / f"{property_name1}_{property_name2}_correlation.png"
             )
@@ -165,8 +165,8 @@ def plot_grid(
         color="yellow",
         label="Best approximation",
     )
-    plt.xlabel(f"${PARAMETER_TO_LATEX[x_parameter]}$")
-    plt.ylabel(f"${PARAMETER_TO_LATEX[y_parameter]}$")
+    plt.xlabel(create_label(x_parameter))
+    plt.ylabel(create_label(y_parameter))
     plt.title(r"Grid search $\chi^2$ map")
     plt.legend(
         handles=[
@@ -251,7 +251,11 @@ def plot_grid_search_results(
 
 
 def create_label(parameter):
-    label = f"${PARAMETER_TO_LATEX[parameter]}$"
+    label = (
+        f"${PARAMETER_TO_LATEX[parameter]}$"
+        if parameter in PARAMETER_TO_LATEX
+        else parameter
+    )
     if parameter in PARAMETER_TO_UNITS:
         label += f" [{PARAMETER_TO_UNITS[parameter]}]"
     return label
