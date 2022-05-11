@@ -1,9 +1,0 @@
-{
-  "tau": 55.778,
-  "f_bl": 1.0,
-  "t0": 425.9784284858111,
-  "u_min": 0.1053628665166248,
-  "t0_error": Infinity,
-  "u_min_error": Infinity,
-  "iterations": 4
-}
