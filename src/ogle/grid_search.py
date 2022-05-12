@@ -1,4 +1,5 @@
 import itertools
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -24,6 +25,7 @@ def iterative_grid_search(
     sample: bool = False,
     verbose: bool = False,
     history: bool = True,
+    max_iterations: Optional[int] = None,
 ):
     for key, value in candidates_dict.items():
         if key not in steps_dict:
@@ -59,6 +61,7 @@ def iterative_grid_search(
             prev_min_chi2 is not None
             and np.fabs(prev_min_chi2 - best_chi2) / prev_min_chi2  # noqa: W503
             < chi2_epsilon  # noqa: W503
+            or index == max_iterations  # noqa: W503
         ):
             break
         prev_min_chi2 = best_chi2

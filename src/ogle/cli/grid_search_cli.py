@@ -28,7 +28,8 @@ def grid_search_cli_group():
 @click.option("--fbl", type=float, default=1)
 @click.option("--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
 @click.option("--chi2-epsilon", type=float, default=CHI2_EPSILON)
-def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon):
+@click.option("-m", "--max-iterations", type=int)
+def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon, max_iterations):
     if data_path.is_dir():
         data_path = data_path / f"{DATA_FILE_NAME}.csv"
     data_dir = data_path.parent
@@ -51,6 +52,7 @@ def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon):
         search_space=search_space,
         chi2_epsilon=chi2_epsilon,
         verbose=True,
+        max_iterations=max_iterations,
     )
     for i, chi2_grid_table in enumerate(history, start=1):
         plot_grid_search_results(
@@ -73,8 +75,17 @@ def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon):
 @click.option("--normal-curve/--no-normal-curve", is_flag=True, default=True)
 @click.option("--chi2-epsilon", type=float, default=CHI2_EPSILON)
 @click.option("-w", "--workers", type=int, default=1)
+@click.option("-m", "--max-iterations", type=int)
 def monte_carlo_2d_cli(
-    data_path, tau, fbl, search_space, experiments, chi2_epsilon, normal_curve, workers
+    data_path,
+    tau,
+    fbl,
+    search_space,
+    experiments,
+    chi2_epsilon,
+    normal_curve,
+    workers,
+    max_iterations,
 ):
     if data_path.is_dir():
         data_path = data_path / f"{DATA_FILE_NAME}.csv"
@@ -98,6 +109,7 @@ def monte_carlo_2d_cli(
             chi2_epsilon=chi2_epsilon,
             sample=True,
             history=False,
+            max_iterations=max_iterations,
         )
         for _ in range(experiments)
     )
@@ -113,7 +125,8 @@ def monte_carlo_2d_cli(
 @click.argument("data_path", type=click.Path(exists=True, path_type=Path))
 @click.option("-s", "--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
 @click.option("-c", "--chi2-epsilon", type=float, default=CHI2_EPSILON)
-def grid_search_4d_cli(data_path, search_space, chi2_epsilon):
+@click.option("-m", "--max-iterations", type=int)
+def grid_search_4d_cli(data_path, search_space, chi2_epsilon, max_iterations):
     if data_path.is_dir():
         data_path = data_path / f"{DATA_FILE_NAME}.csv"
     data_dir = data_path.parent
@@ -143,6 +156,7 @@ def grid_search_4d_cli(data_path, search_space, chi2_epsilon):
         search_space=search_space,
         chi2_epsilon=chi2_epsilon,
         verbose=True,
+        max_iterations=max_iterations,
     )
     for i, chi2_grid_table in enumerate(history, start=1):
         plot_grid_search_results(
@@ -163,8 +177,15 @@ def grid_search_4d_cli(data_path, search_space, chi2_epsilon):
 @click.option("--normal-curve/--no-normal-curve", is_flag=True, default=True)
 @click.option("-c", "--chi2-epsilon", type=float, default=CHI2_EPSILON)
 @click.option("-w", "--workers", type=int, default=1)
+@click.option("-m", "--max-iterations", type=int)
 def monte_carlo_4d_cli(
-    data_path, search_space, experiments, chi2_epsilon, normal_curve, workers
+    data_path,
+    search_space,
+    experiments,
+    chi2_epsilon,
+    normal_curve,
+    workers,
+    max_iterations,
 ):
     if data_path.is_dir():
         data_path = data_path / f"{DATA_FILE_NAME}.csv"
@@ -195,6 +216,7 @@ def monte_carlo_4d_cli(
             chi2_epsilon=chi2_epsilon,
             sample=True,
             history=False,
+            max_iterations=max_iterations,
         )
         for _ in range(experiments)
     )
