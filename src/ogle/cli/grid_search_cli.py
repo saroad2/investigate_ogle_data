@@ -200,7 +200,7 @@ def monte_carlo_4d_cli(
     t0_candidate, t0_step = results_json["t0"], results_json["t0_error"]
     u_min_candidate, u_min_step = results_json["u_min"], results_json["u_min_error"]
     tau_candidate, tau_step = results_json["tau"], results_json["tau_error"]
-    fbl_candidate, fbl_step = 1, 2 / search_space
+    fbl_candidate, fbl_step = 0.5, 2 / search_space
     results = Parallel(n_jobs=workers, verbose=5)(
         delayed(iterative_grid_search)(
             x=x,
