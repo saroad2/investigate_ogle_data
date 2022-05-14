@@ -30,7 +30,10 @@ def grid_search_cli_group():
 @click.option("--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
 @click.option("--chi2-epsilon", type=float, default=CHI2_EPSILON)
 @click.option("-m", "--max-iterations", type=int)
-def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon, max_iterations):
+@click.option("--limited/--no-limited", is_flag=True, default=False)
+def grid_search_2d_cli(
+    data_path, tau, fbl, search_space, chi2_epsilon, max_iterations, limited
+):
     if data_path.is_dir():
         data_path = data_path / f"{DATA_FILE_NAME}.csv"
     data_dir = data_path.parent
@@ -52,6 +55,7 @@ def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon, max_iter
         steps_dict=dict(t0=t0_step, u_min=u_min_step),
         search_space=search_space,
         chi2_epsilon=chi2_epsilon,
+        limited=limited,
         verbose=True,
         max_iterations=max_iterations,
     )
@@ -130,7 +134,8 @@ def monte_carlo_2d_cli(
 @click.option("-s", "--search-space", type=int, default=DEFAULT_SPACE_SEARCH)
 @click.option("-c", "--chi2-epsilon", type=float, default=CHI2_EPSILON)
 @click.option("-m", "--max-iterations", type=int)
-def grid_search_4d_cli(data_path, search_space, chi2_epsilon, max_iterations):
+@click.option("--limited/--no-limited", is_flag=True, default=False)
+def grid_search_4d_cli(data_path, search_space, chi2_epsilon, max_iterations, limited):
     if data_path.is_dir():
         data_path = data_path / f"{DATA_FILE_NAME}.csv"
     data_dir = data_path.parent
@@ -160,6 +165,7 @@ def grid_search_4d_cli(data_path, search_space, chi2_epsilon, max_iterations):
         search_space=search_space,
         chi2_epsilon=chi2_epsilon,
         verbose=True,
+        limited=limited,
         max_iterations=max_iterations,
     )
     for i, chi2_grid_table in enumerate(history, start=1):

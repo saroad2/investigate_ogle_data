@@ -14,3 +14,21 @@ CHI2_EPSILON = 1e-5
 GRID_SEARCH_4D_NAMES = ["t0", "u_min", "tau", "f_bl"]
 GRID_SEARCH_2D_NAMES = ["t0", "u_min"]
 MICROLENSING_PROPERTY_NAMES = ["t0", "f_max", "u_min", "tau"]
+
+PARAMETER_TO_LIMITS = {
+    "t0": (None, None),
+    "u_min": (0, None),
+    "f_bl": (0, 1),
+    "tau": (0, None),
+}
+PARAMETER_TO_LATEX = {
+    "t0": "t_0",
+    "u_min": "u_{min}",
+    "f_bl": "f_{bl}",
+    "tau": r"\tau",
+    "f_max": r"f_{max}",
+}
+PARAMETER_TO_UNITS = {
+    "t0": "HJD",
+    "tau": "HJD",
+}

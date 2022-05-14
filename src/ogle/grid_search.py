@@ -3,15 +3,25 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from ogle.constants import CHI2_EPSILON
+from ogle.constants import CHI2_EPSILON, PARAMETER_TO_LIMITS
 from ogle.fit_data import calculate_chi2
 from ogle.ogle_util import calculate_intensity
 from ogle.random_data import sample_records
 from ogle.search_point import SearchPoint
 
 
-def create_search_list(candidate, step, search_space):
-    return [candidate + n * step for n in range(-search_space // 2, search_space // 2)]
+def create_search_list(candidate, step, search_space, parameter, limited: bool = False):
+    min_val, max_val = (
+        candidate - step * search_space / 2,
+        candidate + step * search_space / 2,
+    )
+    if limited:
+        absolute_min, absolute_max = PARAMETER_TO_LIMITS[parameter]
+        if absolute_min is not None:
+            min_val = max(min_val, absolute_min)
+        if absolute_max is not None:
+            max_val = min(max_val, absolute_max)
+    return np.linspace(min_val, max_val, num=search_space)
 
 
 def iterative_grid_search(
@@ -26,6 +36,7 @@ def iterative_grid_search(
     sample: bool = False,
     verbose: bool = False,
     history: bool = True,
+    limited: bool = False,
     max_iterations: Optional[int] = None,
 ):
     for key, value in candidates_dict.items():
@@ -43,7 +54,9 @@ def iterative_grid_search(
         values_dict = {key: [value] for key, value in constants_dict.items()}
         values_dict.update(
             {
-                key: create_search_list(value, steps_dict[key], search_space)
+                key: create_search_list(
+                    value, steps_dict[key], search_space, parameter=key, limited=limited
+                )
                 for key, value in candidates_dict.items()
             }
         )

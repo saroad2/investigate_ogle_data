@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.ticker import FormatStrFormatter
+from ogle.constants import PARAMETER_TO_LATEX, PARAMETER_TO_UNITS
 from ogle.grid_search import (
     build_grid_matrix,
     build_results_dict,
@@ -13,18 +14,6 @@ from ogle.grid_search import (
 from ogle.ogle_util import calculate_intensity, extract_microlensing_properties
 from scipy.integrate import trapz
 from scipy.stats import norm
-
-PARAMETER_TO_LATEX = {
-    "t0": "t_0",
-    "u_min": "u_{min}",
-    "f_bl": "f_{bl}",
-    "tau": r"\tau",
-    "f_max": r"f_{max}",
-}
-PARAMETER_TO_UNITS = {
-    "t0": "HJD",
-    "tau": "HJD",
-}
 
 
 def plot_parabolic_fit(x, y, yerr, fit_result, t_start, output_dir):
