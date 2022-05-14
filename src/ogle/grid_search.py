@@ -7,6 +7,7 @@ from ogle.constants import CHI2_EPSILON
 from ogle.fit_data import calculate_chi2
 from ogle.ogle_util import calculate_intensity
 from ogle.random_data import sample_records
+from ogle.search_point import SearchPoint
 
 
 def create_search_list(candidate, step, search_space):
@@ -48,12 +49,13 @@ def iterative_grid_search(
         )
         chi2_grid_table = grid_search(x, y, yerr, **values_dict)
         chi2_grid_tables_history.append(chi2_grid_table)
-        best_approximation = extract_grid_search_best_approximation(chi2_grid_table)
-        best_chi2 = best_approximation.pop("chi2")
+        best_approximation, best_chi2 = extract_grid_search_best_approximation(
+            chi2_grid_table
+        )
         candidates_dict = {
             key: value
-            for key, value in best_approximation.items()
-            if key not in constants_dict
+            for key, value in best_approximation.asdict().items()
+            if key not in constants_dict.keys()
         }
         if verbose:
             print(f"Min chi2: {best_chi2:.2e}")
@@ -76,9 +78,10 @@ def iterative_grid_search(
 
 
 def build_results_dict(chi2_grid_table, parameters, index):
-    best_approximation = extract_grid_search_best_approximation(chi2_grid_table)
-    best_chi2 = best_approximation.pop("chi2")
-    results = dict(best_approximation)
+    best_approximation, best_chi2 = extract_grid_search_best_approximation(
+        chi2_grid_table
+    )
+    results = best_approximation.asdict()
     results.update(
         calculate_errors_dict(
             chi2_grid_table,
@@ -120,13 +123,15 @@ def extract_grid_search_best_approximation(chi2_grid_table):
     min_chi2_records = chi2_grid_table.loc[
         chi2_grid_table["chi2"] == best_chi2
     ].to_dict("records")
-    if len(min_chi2_records) == 1:
-        return min_chi2_records[0]
-    return None
+    if len(min_chi2_records) == 0:
+        return None
+    best_record = min_chi2_records[0]
+    best_record.pop("chi2")
+    return SearchPoint(**best_record), best_chi2
 
 
 def build_grid_matrix(chi2_grid_table, best_approximation, parameter1, parameter2):
-    filter_dict = dict(best_approximation)
+    filter_dict = best_approximation.asdict()
     del filter_dict[parameter1]
     del filter_dict[parameter2]
     filter_dict = {
@@ -159,7 +164,7 @@ def build_grid_matrix(chi2_grid_table, best_approximation, parameter1, parameter
 def calculate_errors_dict(chi2_grid_table, best_approximation, best_chi2, parameters):
     errors_dict = {}
     for parameter in parameters:
-        filter_dict = dict(best_approximation)
+        filter_dict = best_approximation.asdict()
         del filter_dict[parameter]
         filtered_table = chi2_grid_table.loc[
             (chi2_grid_table[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)
@@ -170,7 +175,7 @@ def calculate_errors_dict(chi2_grid_table, best_approximation, best_chi2, parame
             values=parameter_values,
             chi2=chi2_values,
             best_chi2=best_chi2,
-            best_parameter=best_approximation[parameter],
+            best_parameter=best_approximation.asdict()[parameter],
         )
 
     return errors_dict

@@ -211,8 +211,9 @@ def plot_grid_search_results(
     chi2_grid_table.to_csv(
         output_dir / f"grid_search_table{index}.csv", index=False, header=True
     )
-    best_approximation = extract_grid_search_best_approximation(chi2_grid_table)
-    best_chi2 = best_approximation.pop("chi2")
+    best_approximation, best_chi2 = extract_grid_search_best_approximation(
+        chi2_grid_table
+    )
     values_dict = build_values_dict(
         chi2_grid_table=chi2_grid_table, parameters=parameters
     )
@@ -241,7 +242,7 @@ def plot_grid_search_results(
     plot_fit(
         x=x,
         y_true=y,
-        y_pred=calculate_intensity(t=x, **best_approximation),
+        y_pred=calculate_intensity(t=x, **best_approximation.asdict()),
         yerr=yerr,
         title=rf"Grid search fit ($\chi^2_{{red}} = {best_chi2:.2e}$)",
         xlabel="Time [sec]",
