@@ -135,24 +135,16 @@ def plot_grid(
     x_parameter,
     y_parameter,
 ):
-    x_min, x_max, y_min, y_max = (
-        x_values[0],
-        x_values[-1],
-        y_values[0],
-        y_values[-1],
-    )
-    heatmap = plt.imshow(
-        chi2_grid.T, origin="lower", extent=[x_min, x_max, y_min, y_max], aspect="auto"
-    )
-    plt.colorbar(heatmap)
     X, Y = np.meshgrid(x_values, y_values)
+    heatmap = plt.pcolormesh(X, Y, chi2_grid.T)
+    plt.colorbar(heatmap)
     i, j = np.unravel_index(chi2_grid.argmin(), chi2_grid.shape)
     best_t0, best_u_min = x_values[i], y_values[j]
     best_chi2 = chi2_grid[i, j]
     plt.contour(
         X,
         Y,
-        chi2_grid,
+        chi2_grid.T,
         colors=["green", "yellow", "red"],
         linestyles="dashed",
         levels=[best_chi2 + 2.3, best_chi2 + 4.61, best_chi2 + 9.21],
