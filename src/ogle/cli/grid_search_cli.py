@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import click
+import numpy as np
 from joblib import Parallel, delayed
 from ogle.cli.ogle_cli import ogle_cli_group
 from ogle.constants import (
@@ -63,7 +64,9 @@ def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon, max_iter
             parameters=["t0", "u_min"],
             output_dir=output_dir,
             index=i,
-            steps_dict=dict(t0=t0_step, u_min=u_min_step),
+            steps_dict=dict(
+                t0=t0_step / np.power(2, i), u_min=u_min_step / np.power(2, i)
+            ),
         )
 
 
@@ -168,7 +171,12 @@ def grid_search_4d_cli(data_path, search_space, chi2_epsilon, max_iterations):
             parameters=["t0", "u_min", "tau", "f_bl"],
             output_dir=output_dir,
             index=i,
-            steps_dict=dict(t0=t0_step, u_min=u_min_step, tau=tau_step, f_bl=fbl_step),
+            steps_dict=dict(
+                t0=t0_step / np.power(2, i),
+                u_min=u_min_step / np.power(2, i),
+                tau=tau_step / np.power(2, i),
+                f_bl=fbl_step / np.power(2, i),
+            ),
         )
 
 

@@ -147,37 +147,6 @@ def extract_grid_search_best_approximation(chi2_grid_table):
     return SearchPoint(**best_record), best_chi2
 
 
-def build_grid_matrix(chi2_grid_table, best_approximation, parameter1, parameter2):
-    filter_dict = best_approximation.asdict()
-    del filter_dict[parameter1]
-    del filter_dict[parameter2]
-    filter_dict = {
-        key: value for key, value in filter_dict.items() if not key.endswith("index")
-    }
-    filtered_table = chi2_grid_table.loc[
-        (chi2_grid_table[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)
-    ]
-    parameter1_values = list(filtered_table[parameter1].unique())
-    parameter1_values.sort()
-    parameter2_values = list(filtered_table[parameter2].unique())
-    parameter2_values.sort()
-    n = len(parameter1_values)
-    m = len(parameter2_values)
-    grid = np.zeros(shape=(n, m))
-    for i in range(n):
-        for j in range(m):
-            parameter1_value, parameter2_value = (
-                parameter1_values[i],
-                parameter2_values[j],
-            )
-            record = filtered_table[
-                filtered_table[parameter1].eq(parameter1_value)
-                & filtered_table[parameter2].eq(parameter2_value)  # noqa: W503
-            ]
-            grid[i, j] = record["chi2"].iloc[0]
-    return grid
-
-
 def calculate_errors_dict(
     best_approximation, best_chi2, parameters, steps_dict, x, y, yerr
 ):
@@ -242,10 +211,88 @@ def find_value(
     return None
 
 
-def build_values_dict(chi2_grid_table, parameters):
-    values_dict = {}
-    for parameter in parameters:
-        values = list(chi2_grid_table[parameter].unique())
-        values.sort()
-        values_dict[parameter] = values
-    return values_dict
+def build_grid_matrix(
+    best_approximation: SearchPoint,
+    best_chi2: float,
+    parameter1: str,
+    parameter2: str,
+    step1: float,
+    step2: float,
+    x: np.ndarray,
+    y: np.ndarray,
+    yerr: np.ndarray,
+    degrees_of_freedom: int,
+    size: int = 50,
+):
+    parameter1_values = get_parameter_values(
+        start_point=best_approximation,
+        parameter=parameter1,
+        step=step1,
+        search_value=best_chi2 + 12,
+        x=x,
+        y=y,
+        yerr=yerr,
+        degrees_of_freedom=degrees_of_freedom,
+        size=size,
+    )
+    parameter2_values = get_parameter_values(
+        start_point=best_approximation,
+        parameter=parameter2,
+        step=step2,
+        search_value=best_chi2 + 12,
+        x=x,
+        y=y,
+        yerr=yerr,
+        degrees_of_freedom=degrees_of_freedom,
+        size=size,
+    )
+    grid = np.zeros((size, size))
+    for i in range(size):
+        for j in range(size):
+            search_point = best_approximation.replace(
+                **{parameter1: parameter1_values[i], parameter2: parameter2_values[j]}
+            )
+            intensity = calculate_intensity(t=x, **search_point.asdict())
+            grid[i, j] = calculate_chi2(
+                y_true=y,
+                y_pred=intensity,
+                yerr=yerr,
+                degrees_of_freedom=degrees_of_freedom,
+            )
+    return parameter1_values, parameter2_values, grid
+
+
+def get_parameter_values(
+    start_point: SearchPoint,
+    parameter: str,
+    step: float,
+    search_value: float,
+    x: np.ndarray,
+    y: np.ndarray,
+    yerr: np.ndarray,
+    degrees_of_freedom: int,
+    size: int,
+):
+    i = 1
+    while True:
+        search_point = start_point.move(**{parameter: i * step})
+        intensity = calculate_intensity(t=x, **search_point.asdict())
+        chi2 = calculate_chi2(
+            y_true=y, y_pred=intensity, yerr=yerr, degrees_of_freedom=degrees_of_freedom
+        )
+        if chi2 > search_value:
+            max_value = search_point.asdict()[parameter]
+            break
+        i += 1
+    i = -1
+    while True:
+        search_point = start_point.move(**{parameter: i * step})
+        intensity = calculate_intensity(t=x, **search_point.asdict())
+        chi2 = calculate_chi2(
+            y_true=y, y_pred=intensity, yerr=yerr, degrees_of_freedom=degrees_of_freedom
+        )
+        if chi2 > search_value:
+            min_value = search_point.asdict()[parameter]
+            break
+        i -= 1
+    return np.linspace(min_value, max_value, num=size)

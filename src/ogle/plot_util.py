@@ -8,7 +8,6 @@ from matplotlib.ticker import FormatStrFormatter
 from ogle.grid_search import (
     build_grid_matrix,
     build_results_dict,
-    build_values_dict,
     extract_grid_search_best_approximation,
 )
 from ogle.ogle_util import calculate_intensity, extract_microlensing_properties
@@ -207,17 +206,24 @@ def plot_grid_search_results(
     best_approximation, best_chi2 = extract_grid_search_best_approximation(
         chi2_grid_table
     )
-    values_dict = build_values_dict(
-        chi2_grid_table=chi2_grid_table, parameters=parameters
-    )
+    degrees_of_freedom = x.shape[0] - 2
     for parameter1, parameter2 in itertools.combinations(parameters, 2):
-        chi2_grid = build_grid_matrix(
-            chi2_grid_table, best_approximation, parameter1, parameter2
+        x_values, y_values, chi2_grid = build_grid_matrix(
+            best_approximation=best_approximation,
+            best_chi2=best_chi2,
+            parameter1=parameter1,
+            parameter2=parameter2,
+            step1=steps_dict[parameter1],
+            step2=steps_dict[parameter2],
+            x=x,
+            y=y,
+            yerr=yerr,
+            degrees_of_freedom=degrees_of_freedom,
         )
         plot_grid(
             chi2_grid=chi2_grid,
-            x_values=values_dict[parameter1],
-            y_values=values_dict[parameter2],
+            x_values=x_values,
+            y_values=y_values,
             x_parameter=parameter1,
             y_parameter=parameter2,
             output_path=(

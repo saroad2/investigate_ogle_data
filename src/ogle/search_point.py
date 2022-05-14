@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
 
 @dataclass
@@ -35,6 +35,12 @@ class SearchPoint:
 
     def __rmul__(self, other: float):
         return self * other
+
+    def move(self, **kwargs) -> "SearchPoint":
+        return self + SearchPoint(**kwargs)
+
+    def replace(self, **kwargs) -> "SearchPoint":
+        return replace(self, **kwargs)
 
     def copy(self) -> "SearchPoint":
         return SearchPoint(u_min=self.u_min, t0=self.t0, tau=self.tau, f_bl=self.f_bl)
