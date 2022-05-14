@@ -108,6 +108,7 @@ def build_results_dict(
         )
     )
     results["iterations"] = index
+    results["chi2"] = best_chi2
     return results
 
 
