@@ -73,21 +73,38 @@ def iterative_grid_search(
         return chi2_grid_tables_history
     last_grid_table = chi2_grid_tables_history[-1]
     return build_results_dict(
-        chi2_grid_table=last_grid_table, parameters=parameters, index=index
+        chi2_grid_table=last_grid_table,
+        parameters=parameters,
+        index=index,
+        x=x,
+        y=y,
+        yerr=yerr,
+        steps_dict=steps_dict,
     )
 
 
-def build_results_dict(chi2_grid_table, parameters, index):
+def build_results_dict(
+    chi2_grid_table,
+    parameters,
+    index,
+    x,
+    y,
+    yerr,
+    steps_dict,
+):
     best_approximation, best_chi2 = extract_grid_search_best_approximation(
         chi2_grid_table
     )
     results = best_approximation.asdict()
     results.update(
         calculate_errors_dict(
-            chi2_grid_table,
-            best_approximation,
+            best_approximation=best_approximation,
             best_chi2=best_chi2,
             parameters=parameters,
+            steps_dict=steps_dict,
+            x=x,
+            y=y,
+            yerr=yerr,
         )
     )
     results["iterations"] = index
@@ -161,35 +178,68 @@ def build_grid_matrix(chi2_grid_table, best_approximation, parameter1, parameter
     return grid
 
 
-def calculate_errors_dict(chi2_grid_table, best_approximation, best_chi2, parameters):
+def calculate_errors_dict(
+    best_approximation, best_chi2, parameters, steps_dict, x, y, yerr
+):
     errors_dict = {}
     for parameter in parameters:
-        filter_dict = best_approximation.asdict()
-        del filter_dict[parameter]
-        filtered_table = chi2_grid_table.loc[
-            (chi2_grid_table[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)
-        ]
-        parameter_values = filtered_table[parameter].to_numpy()
-        chi2_values = filtered_table["chi2"].to_numpy()
         errors_dict[f"{parameter}_error"] = get_error(
-            values=parameter_values,
-            chi2=chi2_values,
+            best_approximation=best_approximation,
             best_chi2=best_chi2,
-            best_parameter=best_approximation.asdict()[parameter],
+            parameter=parameter,
+            step=steps_dict[parameter],
+            x=x,
+            y=y,
+            yerr=yerr,
+            max_search=1_000,
         )
 
     return errors_dict
 
 
-def get_error(values, chi2, best_chi2, best_parameter):
-    filtered_values = values[np.fabs(chi2 - best_chi2) > 1]
-    if filtered_values.shape[0] == 0:
-        return np.inf
-    big_values = filtered_values[filtered_values > best_parameter]
-    max_value = np.min(big_values) if big_values.shape[0] > 0 else np.max(values)
-    small_values = filtered_values[filtered_values < best_parameter]
-    min_value = np.max(small_values) if small_values.shape[0] > 0 else np.min(values)
+def get_error(best_approximation, best_chi2, parameter, step, x, y, yerr, max_search):
+    max_value = find_value(
+        best_approximation=best_approximation,
+        best_chi2=best_chi2,
+        parameter=parameter,
+        step=step,
+        x=x,
+        y=y,
+        yerr=yerr,
+        direction=1,
+        max_search=max_search,
+    )
+    min_value = find_value(
+        best_approximation=best_approximation,
+        best_chi2=best_chi2,
+        parameter=parameter,
+        step=step,
+        x=x,
+        y=y,
+        yerr=yerr,
+        direction=-1,
+        max_search=max_search,
+    )
+    if max_value is None or min_value is None:
+        return None
     return (max_value - min_value) / 2
+
+
+def find_value(
+    best_approximation, best_chi2, parameter, step, x, y, yerr, direction, max_search
+):
+    degrees_of_freedom = x.shape[0] - 2
+    best_parameter_value = best_approximation.asdict()[parameter]
+    for i in range(1, max_search):
+        parameter_value = best_parameter_value + direction * i * step
+        search_point = best_approximation + SearchPoint(**{parameter: parameter_value})
+        intensity = calculate_intensity(t=x, **search_point.asdict())
+        chi2 = calculate_chi2(
+            y_true=y, y_pred=intensity, yerr=yerr, degrees_of_freedom=degrees_of_freedom
+        )
+        if chi2 > best_chi2 + 1:
+            return parameter_value
+    return None
 
 
 def build_values_dict(chi2_grid_table, parameters):

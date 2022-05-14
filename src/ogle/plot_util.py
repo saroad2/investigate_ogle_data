@@ -207,6 +207,7 @@ def plot_grid_search_results(
     parameters,
     output_dir,
     index,
+    steps_dict,
 ):
     chi2_grid_table.to_csv(
         output_dir / f"grid_search_table{index}.csv", index=False, header=True
@@ -234,7 +235,13 @@ def plot_grid_search_results(
     with open(output_dir / f"grid_search{index}_results.json", mode="w") as fd:
         json.dump(
             build_results_dict(
-                chi2_grid_table=chi2_grid_table, parameters=parameters, index=index
+                chi2_grid_table=chi2_grid_table,
+                parameters=parameters,
+                index=index,
+                x=x,
+                y=y,
+                yerr=yerr,
+                steps_dict=steps_dict,
             ),
             fd,
             indent=2,

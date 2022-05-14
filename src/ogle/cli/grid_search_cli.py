@@ -63,6 +63,7 @@ def grid_search_2d_cli(data_path, tau, fbl, search_space, chi2_epsilon, max_iter
             parameters=["t0", "u_min"],
             output_dir=output_dir,
             index=i,
+            steps_dict=dict(t0=t0_step, u_min=u_min_step),
         )
 
 
@@ -167,6 +168,7 @@ def grid_search_4d_cli(data_path, search_space, chi2_epsilon, max_iterations):
             parameters=["t0", "u_min", "tau", "f_bl"],
             output_dir=output_dir,
             index=i,
+            steps_dict=dict(t0=t0_step, u_min=u_min_step, tau=tau_step, f_bl=fbl_step),
         )
 
 
