@@ -142,7 +142,7 @@ def plot_grid(
         y_values[-1],
     )
     heatmap = plt.imshow(
-        chi2_grid, origin="lower", extent=[x_min, x_max, y_min, y_max], aspect="auto"
+        chi2_grid.T, origin="lower", extent=[x_min, x_max, y_min, y_max], aspect="auto"
     )
     plt.colorbar(heatmap)
     X, Y = np.meshgrid(x_values, y_values)
